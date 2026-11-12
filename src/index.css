@@ -1,0 +1,450 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=JetBrains+Mono:ital,wght@0,400..700;1,400..700&display=swap');
+
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+:root {
+  color-scheme: light;
+
+  /* Sapphire + Gunmetal + Platinum Palette - Light */
+  --color-bg: #EEF0F3;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #E3E6EB;
+  --color-border: #AEB6C2;
+  --color-text: #1F262E;
+  --color-muted: #4A5563;
+  --color-accent: #0F52BA;
+  --color-accent-hover: #0C45A0;
+  --color-accent-active: #0A3A88;
+  --color-accent-text: #FFFFFF;
+  --color-highlight: #FF9F6B;
+  --color-highlight-text: #2B1608;
+  --color-highlight-ink: #B04A12;
+  --color-tan: #D9C3A0;
+  --color-tan-text: #2B1F0E;
+
+  /* Status Tokens (icon + label on ~12% tinted bg) */
+  --status-new-text: #2A6FB0;
+  --status-new-bg: #E5EFF7;
+  --status-inprogress-text: #9A6A00;
+  --status-inprogress-bg: #F5EEDB;
+  --status-resolved-text: #2F7D4F;
+  --status-resolved-bg: #E6F2EB;
+  --status-escalated-text: #B3261E;
+  --status-escalated-bg: #F8E7E6;
+
+  /* Form Control Tokens */
+  --color-input: #E3E6EB;
+  --color-input-border: #AEB6C2;
+  --color-input-hover-border: #0F52BA;
+  --color-input-text: #1F262E;
+  --color-input-placeholder: #4A5563;
+  --color-input-disabled-bg: #D8DCE3;
+  --color-input-disabled-text: #7E8997;
+  --color-input-disabled-border: #AEB6C2;
+
+  /* Shadows: Soft shadow in light mode only */
+  --shadow-soft: 0 2px 6px 0 rgba(31, 38, 46, 0.06), 0 1px 3px 0 rgba(31, 38, 46, 0.04);
+
+  /* Legacy & Helper Aliases */
+  --color-background: var(--color-bg);
+  --color-surface-elevated: var(--color-surface-2);
+  --color-text-primary: var(--color-text);
+  --color-text-secondary: var(--color-muted);
+  --color-text-muted: var(--color-muted);
+  --color-primary: var(--color-accent);
+  --color-primary-hover: #0C4194;
+  --border: var(--color-border);
+  --color-success: var(--status-resolved-text);
+  --color-warning: var(--status-inprogress-text);
+  --color-danger: var(--status-escalated-text);
+  --color-info: var(--status-new-text);
+
+  /* No Gradients */
+  --gradient-hero: none;
+  --gradient-primary: none;
+  --gradient-card: none;
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* Sapphire + Gunmetal + Platinum Palette - Dark */
+  --color-bg: #12161C;
+  --color-surface: #1C222B;
+  --color-surface-2: #262E3A;
+  --color-border: #3B4656;
+  --color-text: #E5E4E2;
+  --color-muted: #A7B0BD;
+  --color-accent: #5B8DEF;
+  --color-accent-hover: #709EF5;
+  --color-accent-active: #82ABF7;
+  --color-accent-text: #0A1020;
+  --color-highlight: #FFA877;
+  --color-highlight-text: #2B1608;
+  --color-highlight-ink: #FFA877;
+  --color-tan: #C9A97C;
+  --color-tan-text: #1E150A;
+
+  /* Status Tokens (icon + label on ~18% tinted bg) */
+  --status-new-text: #8DB8F0;
+  --status-new-bg: #1E2B3A;
+  --status-inprogress-text: #E8B04A;
+  --status-inprogress-bg: #342B1A;
+  --status-resolved-text: #7CCB9B;
+  --status-resolved-bg: #1C3024;
+  --status-escalated-text: #F2877F;
+  --status-escalated-bg: #361E1D;
+
+  /* Form Control Tokens */
+  --color-input: #262E3A;
+  --color-input-border: #3B4656;
+  --color-input-hover-border: #5B8DEF;
+  --color-input-text: #E5E4E2;
+  --color-input-placeholder: #A7B0BD;
+  --color-input-disabled-bg: #181E27;
+  --color-input-disabled-text: #6E7A8A;
+  --color-input-disabled-border: #3B4656;
+
+  /* Shadows: None in dark mode */
+  --shadow-soft: none;
+
+  /* Legacy & Helper Aliases */
+  --color-background: var(--color-bg);
+  --color-surface-elevated: var(--color-surface-2);
+  --color-text-primary: var(--color-text);
+  --color-text-secondary: var(--color-muted);
+  --color-text-muted: var(--color-muted);
+  --color-primary: var(--color-accent);
+  --color-primary-hover: #78A3F4;
+  --border: var(--color-border);
+  --color-success: var(--status-resolved-text);
+  --color-warning: var(--status-inprogress-text);
+  --color-danger: var(--status-escalated-text);
+  --color-info: var(--status-new-text);
+
+  /* No Gradients */
+  --gradient-hero: none;
+  --gradient-primary: none;
+  --gradient-card: none;
+}
+
+@layer base {
+  body {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--color-text);
+    background-color: var(--color-bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: color 150ms ease-out, background-color 150ms ease-out;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: 'Bricolage Grotesque', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.15;
+    color: var(--color-text);
+    font-weight: 600;
+  }
+
+  /* IDs, dates, time slots, counts in JetBrains Mono */
+  code, kbd, samp, pre, .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  }
+
+  /* No shadows in dark mode */
+  .dark *,
+  .dark .shadow,
+  .dark .shadow-xs,
+  .dark .shadow-sm,
+  .dark .shadow-md,
+  .dark .shadow-lg,
+  .dark .shadow-xl,
+  .dark .shadow-2xl {
+    box-shadow: none !important;
+  }
+
+  /* Hairline borders strictly 1px */
+  hr, .border-t, .border-b, .border-l, .border-r, .border {
+    border-color: var(--color-border);
+  }
+
+  /* Custom Clean Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-muted);
+  }
+}
+
+/* Transitions: 180ms to 220ms ease-calm on color/background/border only */
+*, ::before, ::after {
+  transition-property: color, background-color, border-color, text-decoration-color, box-shadow;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* Accessible Reduced Motion: Disable all keyframe animations & movement, instant transitions */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+    transform: none !important;
+  }
+  .animate-pulse-dot,
+  .animate-shimmer-subtle,
+  .animate-mic-ring,
+  .animate-message-enter,
+  .animate-fadeIn,
+  .animate-slideUp,
+  .animate-slideDown,
+  .animate-slideRight {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* Clean, flat animations without glowing */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideRight {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Soft 3-dot pulse: opacity 0.3 to 1, 1.2s loop, colored with accent, no bouncing */
+@keyframes pulseDot {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Low-contrast skeleton shimmer: surface-2 to border and back, 1.8s loop */
+@keyframes subtleShimmer {
+  0%, 100% {
+    background-color: var(--color-surface-2);
+  }
+  50% {
+    background-color: var(--color-border);
+  }
+}
+
+/* Voice recording mic ring pulse: opacity and scale 1 to 1.15, 1.6s loop */
+@keyframes micPulseRing {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.25;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+}
+
+/* New message bubble entry: opacity 0 to 1, rise 6px, 220ms */
+@keyframes messageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 200ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+.animate-slideUp {
+  animation: slideUp 200ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+.animate-slideDown {
+  animation: slideDown 200ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+.animate-slideRight {
+  animation: slideRight 200ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+.animate-pulse-dot {
+  animation: pulseDot 1.2s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+}
+
+.animate-shimmer-subtle {
+  animation: subtleShimmer 1.8s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+}
+
+.animate-mic-ring {
+  animation: micPulseRing 1.6s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+}
+
+.animate-message-enter {
+  animation: messageEnter 220ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+/* Clamp legacy rounded-3xl / rounded-2xl to cards max 12px */
+.rounded-3xl, .rounded-2xl {
+  border-radius: 12px !important;
+}
+
+/* ==========================================================================
+   Noticeboard Form Controls, Inputs, and Badges
+   ========================================================================== */
+
+@layer components {
+  /* Hairline 1.5px input styling with 10px radius */
+  .app-input {
+    background-color: var(--color-input) !important;
+    border: 1.5px solid var(--color-input-border) !important;
+    border-radius: 10px !important;
+    color: var(--color-input-text) !important;
+    font-family: inherit;
+  }
+
+  .app-input::placeholder {
+    color: var(--color-input-placeholder) !important;
+    opacity: 0.8;
+  }
+
+  .app-input:hover:not(:disabled):not([readonly]) {
+    border-color: var(--color-input-hover-border) !important;
+  }
+
+  .app-input:focus {
+    outline: none !important;
+    border-color: var(--color-accent) !important;
+    box-shadow: 0 0 0 2px rgba(15, 82, 186, 0.25) !important;
+  }
+
+  .dark .app-input:focus {
+    box-shadow: 0 0 0 2px rgba(91, 141, 239, 0.3) !important;
+  }
+
+  .app-input:disabled,
+  .app-input[readonly] {
+    background-color: var(--color-input-disabled-bg) !important;
+    border-color: var(--color-input-disabled-border) !important;
+    color: var(--color-input-disabled-text) !important;
+    cursor: not-allowed !important;
+  }
+
+  select.app-input option {
+    background-color: var(--color-surface);
+    color: var(--color-text);
+  }
+
+  /* Date / Time Inputs & Popups matching color-scheme */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    color-scheme: light;
+  }
+
+  .dark input[type="date"],
+  .dark input[type="time"],
+  .dark input[type="datetime-local"],
+  .dark select {
+    color-scheme: dark;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator,
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    opacity: 0.6;
+    cursor: pointer;
+    filter: invert(var(--calendar-indicator-invert, 0));
+  }
+
+  /* Chips: soft filled background (surface-2), no default border; border on hover/focus/selected */
+  .app-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border: 1px solid transparent;
+    user-select: none;
+    cursor: pointer;
+  }
+
+  .app-chip-selected {
+    background-color: var(--color-accent) !important;
+    color: var(--color-accent-text) !important;
+    border-color: var(--color-accent) !important;
+  }
+
+  .app-chip-unselected {
+    background-color: var(--color-surface-2) !important;
+    border-color: transparent !important;
+    color: var(--color-muted) !important;
+  }
+
+  .app-chip-unselected:hover {
+    background-color: var(--color-surface-2) !important;
+    border-color: var(--color-border) !important;
+    color: var(--color-text) !important;
+  }
+
+  /* Force high contrast text and icons on accent backgrounds */
+  .text-accent-text {
+    color: var(--color-accent-text) !important;
+  }
+}
