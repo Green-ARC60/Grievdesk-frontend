@@ -65,3 +65,28 @@ export function removeStoredUser(): void {
   localStorage.removeItem(USER_STORAGE_KEY);
 }
 
+/**
+ * Request a 6-digit OTP to be sent to user's registered Gmail
+ */
+export async function sendForgotPasswordOtpApi(gmail: string): Promise<{ message: string; gmail: string }> {
+  const response = await apiClient.post<{ message: string; gmail: string }>('/auth/forgot-password/send-otp', { gmail });
+  return response.data;
+}
+
+/**
+ * Verify 6-digit OTP and retrieve reset_token
+ */
+export async function verifyForgotPasswordOtpApi(gmail: string, otp: string): Promise<{ message: string; reset_token: string }> {
+  const response = await apiClient.post<{ message: string; reset_token: string }>('/auth/forgot-password/verify-otp', { gmail, otp });
+  return response.data;
+}
+
+/**
+ * Reset password using the reset_token
+ */
+export async function resetForgotPasswordApi(reset_token: string, new_password: string): Promise<{ message: string }> {
+  const response = await apiClient.post<{ message: string }>('/auth/forgot-password/reset-password', { reset_token, new_password });
+  return response.data;
+}
+
+

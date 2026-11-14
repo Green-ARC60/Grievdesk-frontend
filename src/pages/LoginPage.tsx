@@ -181,6 +181,15 @@ export const LoginPage: React.FC = () => {
               required
             />
 
+            <div className="flex justify-end -mt-2">
+              <Link
+                to="/forgot-password"
+                className="text-xs text-accent hover:underline font-medium focus:outline-none focus:ring-1 focus:ring-accent rounded-control py-0.5"
+              >
+                Forgot password?
+              </Link>
+            </div>
+
             <Button
               type="submit"
               variant="primary"

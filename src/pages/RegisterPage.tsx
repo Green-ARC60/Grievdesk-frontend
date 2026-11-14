@@ -463,7 +463,7 @@ export const RegisterPage: React.FC = () => {
           </form>
 
           {/* Login Link */}
-          <div className="mt-6 pt-6 border-t border-border text-center">
+          <div className="mt-6 pt-6 border-t border-border text-center space-y-2">
             <p className="text-sm text-muted">
               Already have an account?{' '}
               <Link
@@ -471,6 +471,12 @@ export const RegisterPage: React.FC = () => {
                 className="font-semibold text-accent hover:underline transition-colors"
               >
                 Sign in here
+              </Link>
+            </p>
+            <p className="text-xs text-muted">
+              Forgot your existing password?{' '}
+              <Link to="/forgot-password" className="text-accent hover:underline font-medium">
+                Reset it here
               </Link>
             </p>
           </div>
