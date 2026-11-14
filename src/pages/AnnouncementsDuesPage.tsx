@@ -921,12 +921,19 @@ export const AnnouncementsDuesPage: React.FC = () => {
                         onClick={() => {
                           setIsCreateDueOpen(false);
                           setSelectedResidentId('');
+                          setDuesError(null);
                         }}
                         className="text-muted hover:text-text p-1 rounded-control"
                       >
                         &times;
                       </button>
                     </div>
+
+                    {duesError && (
+                      <Alert variant="error" onClose={() => setDuesError(null)}>
+                        {duesError}
+                      </Alert>
+                    )}
 
                     <form onSubmit={handleCreateDueSubmit} className="space-y-3.5">
                       {directoryResidents.length > 0 && (
@@ -980,13 +987,16 @@ export const AnnouncementsDuesPage: React.FC = () => {
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
-                        <Input
-                          label="Month (YYYY-MM)"
-                          placeholder="2026-10"
-                          value={newDueMonth}
-                          onChange={(e) => setNewDueMonth(e.target.value)}
-                          required
-                        />
+                        <div>
+                          <Input
+                            label="Month (YYYY-MM)"
+                            placeholder="2026-11"
+                            value={newDueMonth}
+                            onChange={(e) => setNewDueMonth(e.target.value)}
+                            required
+                          />
+                          <p className="text-[11px] text-muted mt-1">One due per flat per month (e.g. 2026-12).</p>
+                        </div>
                         <Input
                           label="Amount (₹)"
                           type="number"
@@ -1013,6 +1023,7 @@ export const AnnouncementsDuesPage: React.FC = () => {
                           onClick={() => {
                             setIsCreateDueOpen(false);
                             setSelectedResidentId('');
+                            setDuesError(null);
                           }}
                         >
                           Cancel
@@ -1037,12 +1048,21 @@ export const AnnouncementsDuesPage: React.FC = () => {
                       </div>
                       <button
                         type="button"
-                        onClick={() => setRemindingDue(null)}
+                        onClick={() => {
+                          setRemindingDue(null);
+                          setDuesError(null);
+                        }}
                         className="text-muted hover:text-text p-1 rounded-control"
                       >
                         &times;
                       </button>
                     </div>
+
+                    {duesError && (
+                      <Alert variant="error" onClose={() => setDuesError(null)}>
+                        {duesError}
+                      </Alert>
+                    )}
 
                     <div className="p-3 rounded-control bg-surface-2 border border-border text-xs text-muted">
                       <p>
