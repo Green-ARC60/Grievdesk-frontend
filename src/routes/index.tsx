@@ -13,6 +13,7 @@ import { AnnouncementsDuesPage } from '../pages/AnnouncementsDuesPage';
 import { MyTicketsPage } from '../pages/MyTicketsPage';
 import { ResidentDirectoryPage } from '../pages/ResidentDirectoryPage';
 import { AmenityBookingPage } from '../pages/AmenityBookingPage';
+import { VendorAllocationPage } from '../pages/VendorAllocationPage';
 import { AboutUsPage } from '../pages/AboutUsPage';
 import { HelpPage } from '../pages/HelpPage';
 import { UnauthorizedPage } from '../pages/UnauthorizedPage';
@@ -65,6 +66,15 @@ export const AppRoutes: React.FC = () => {
           element={
             <ProtectedRoute>
               <ResidentDirectoryPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/vendor-allocation"
+          element={
+            <ProtectedRoute>
+              <VendorAllocationPage />
             </ProtectedRoute>
           }
         />

@@ -13,6 +13,7 @@ import {
   Home,
   LogOut,
   RefreshCw,
+  Wrench,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getRecentThreadsApi } from '../../api/chat';
@@ -80,6 +81,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       to: '/directory',
       label: 'Resident Directory',
       icon: <Users className="w-4 h-4 shrink-0" />,
+    },
+    {
+      to: '/vendor-allocation',
+      label: 'Vendor Allocation',
+      icon: <Wrench className="w-4 h-4 shrink-0" />,
     },
     {
       to: '/profile',
