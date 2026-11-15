@@ -57,3 +57,28 @@ export interface AssignVendorTaskResponse {
   complaint_status: string;
   email_sent: boolean;
 }
+
+export interface MassAssignResultItem {
+  vendor_id: number;
+  vendor_name: string;
+  vendor_profession: string;
+  count: number;
+  email_sent: boolean;
+}
+
+export interface MassAssignVendorPayload {
+  vendor_ids?: number[];
+  complaint_ids?: number[];
+  notes?: string;
+  assignments?: {
+    vendor_id: number;
+    complaint_ids: number[];
+    notes?: string;
+  }[];
+}
+
+export interface MassAssignVendorResponse {
+  message: string;
+  total_assigned: number;
+  results: MassAssignResultItem[];
+}

@@ -20,6 +20,11 @@ import {
   Zap,
   Droplets,
   Sparkles,
+  Layers,
+  Split,
+  CheckSquare,
+  Square,
+  Users2,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
@@ -37,6 +42,7 @@ import {
   updateVendorApi,
   deleteVendorApi,
   assignVendorTaskApi,
+  massAssignVendorTasksApi,
   getVendorDetailsApi,
 } from '../api/vendors';
 import { getComplaintsApi } from '../api/complaints';
@@ -92,6 +98,18 @@ export const VendorAllocationPage: React.FC = () => {
   const [selectedComplaintId, setSelectedComplaintId] = useState<number | null>(null);
   const [assignmentNotes, setAssignmentNotes] = useState('');
   const [complaintFilterText, setComplaintFilterText] = useState('');
+
+  // Mass Allocation & Workload Distribution States
+  const [isMassModalOpen, setIsMassModalOpen] = useState(false);
+  const [massCategoryFilter, setMassCategoryFilter] = useState('Electrical');
+  const [massSearchTerm, setMassSearchTerm] = useState('');
+  const [selectedMassComplaintIds, setSelectedMassComplaintIds] = useState<number[]>([]);
+  const [massAllocationMode, setMassAllocationMode] = useState<'single' | 'distribute'>('distribute');
+  const [selectedSingleVendorId, setSelectedSingleVendorId] = useState<number | ''>('');
+  const [selectedDistributeVendorIds, setSelectedDistributeVendorIds] = useState<number[]>([]);
+  const [massNotes, setMassNotes] = useState('');
+  const [isSubmittingMass, setIsSubmittingMass] = useState(false);
+  const [isRecordingMass, setIsRecordingMass] = useState(false);
 
   // Voice note recording simulation / Web Speech API
   const [isRecording, setIsRecording] = useState(false);
@@ -394,6 +412,249 @@ export const VendorAllocationPage: React.FC = () => {
     );
   }, [complaints, complaintFilterText]);
 
+  // Open Mass Modal
+  const handleOpenMassModal = async () => {
+    setIsMassModalOpen(true);
+    await Promise.all([loadComplaints(), loadVendors()]);
+  };
+
+  // Mass categories available from complaints
+  const massCategories = useMemo(() => {
+    const cats = new Set<string>();
+    complaints.forEach((c) => {
+      if (c.category) cats.add(c.category);
+    });
+    ['Electrical', 'Plumbing', 'Water Supply', 'AC / Heating'].forEach((c) => cats.add(c));
+    return ['All', ...Array.from(cats).sort()];
+  }, [complaints]);
+
+  // Mass complaint counts per category
+  const complaintCountsByCategory = useMemo(() => {
+    const counts: Record<string, number> = { All: complaints.length };
+    complaints.forEach((c) => {
+      const cat = c.category || 'General';
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return counts;
+  }, [complaints]);
+
+  // Filtered complaints for Mass Allocation Modal
+  const filteredMassComplaints = useMemo(() => {
+    return complaints.filter((c) => {
+      const matchesCategory =
+        massCategoryFilter === 'All'
+          ? true
+          : c.category?.toLowerCase().includes(massCategoryFilter.toLowerCase());
+      if (!matchesCategory) return false;
+
+      if (!massSearchTerm.trim()) return true;
+      const term = massSearchTerm.toLowerCase();
+      return (
+        c.translated_text?.toLowerCase().includes(term) ||
+        c.category?.toLowerCase().includes(term) ||
+        c.flat_no?.toLowerCase().includes(term) ||
+        c.block_no?.toLowerCase().includes(term) ||
+        String(c.id).includes(term) ||
+        c.severity?.toLowerCase().includes(term)
+      );
+    });
+  }, [complaints, massCategoryFilter, massSearchTerm]);
+
+  // Toggle select all visible
+  const handleToggleSelectAllVisible = () => {
+    const visibleIds = filteredMassComplaints.map((c) => c.id);
+    const allSelected =
+      visibleIds.length > 0 && visibleIds.every((id) => selectedMassComplaintIds.includes(id));
+    if (allSelected) {
+      setSelectedMassComplaintIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+    } else {
+      setSelectedMassComplaintIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
+    }
+  };
+
+  // Toggle single complaint selection
+  const handleToggleSingleComplaint = (id: number) => {
+    setSelectedMassComplaintIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  // Pre-select matching vendors when category filter or vendor list changes
+  useEffect(() => {
+    if (!isMassModalOpen) return;
+    if (vendors.length === 0) return;
+
+    let matching = vendors;
+    if (massCategoryFilter !== 'All') {
+      const cat = massCategoryFilter.toLowerCase();
+      matching = vendors.filter((v) => {
+        const prof = v.profession.toLowerCase();
+        if (cat.includes('electr')) return prof.includes('electr');
+        if (cat.includes('plumb')) return prof.includes('plumb');
+        if (cat.includes('water')) return prof.includes('water');
+        if (cat.includes('ac') || cat.includes('air')) return prof.includes('ac') || prof.includes('air');
+        return prof.includes(cat);
+      });
+    }
+
+    if (matching.length > 0) {
+      setSelectedDistributeVendorIds(matching.map((v) => v.id));
+      setSelectedSingleVendorId(matching[0].id);
+    } else {
+      setSelectedDistributeVendorIds(vendors.slice(0, 2).map((v) => v.id));
+      setSelectedSingleVendorId(vendors[0]?.id || '');
+    }
+  }, [massCategoryFilter, isMassModalOpen, vendors]);
+
+  // Distribution Split Preview
+  const distributionSplitPreview = useMemo(() => {
+    if (massAllocationMode === 'single') {
+      const targetVendor = vendors.find((v) => v.id === Number(selectedSingleVendorId));
+      if (!targetVendor) return [];
+      return [
+        {
+          vendor: targetVendor,
+          count: selectedMassComplaintIds.length,
+          percentage: selectedMassComplaintIds.length > 0 ? 100 : 0,
+        },
+      ];
+    }
+
+    const assignedVendors = vendors.filter((v) =>
+      selectedDistributeVendorIds.includes(v.id)
+    );
+    const k = assignedVendors.length;
+    if (k === 0 || selectedMassComplaintIds.length === 0) return [];
+
+    const total = selectedMassComplaintIds.length;
+    const baseCount = Math.floor(total / k);
+    const remainder = total % k;
+
+    return assignedVendors.map((vendor, index) => {
+      const count = baseCount + (index < remainder ? 1 : 0);
+      const percentage = Math.round((count / total) * 100);
+      return {
+        vendor,
+        count,
+        percentage,
+      };
+    });
+  }, [
+    massAllocationMode,
+    selectedSingleVendorId,
+    selectedDistributeVendorIds,
+    selectedMassComplaintIds,
+    vendors,
+  ]);
+
+  // Voice recording for mass note
+  const toggleMassVoiceRecording = () => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      if (!isRecordingMass) {
+        setIsRecordingMass(true);
+        showToast('Recording mass batch instructions...', 'info');
+        setTimeout(() => {
+          setMassNotes((prev) =>
+            prev
+              ? `${prev}\n[Voice Note]: Emergency batch repair order. Please coordinate with security at gate and attend to all flats listed below urgently.`
+              : '[Voice Note]: Emergency batch repair order. Please coordinate with security at gate and attend to all flats listed below urgently.'
+          );
+          setIsRecordingMass(false);
+          showToast('Voice note transcribed into local language notes!', 'success');
+        }, 3000);
+      } else {
+        setIsRecordingMass(false);
+      }
+      return;
+    }
+
+    if (isRecordingMass) {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      setIsRecordingMass(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = speechLanguage;
+      recognition.interimResults = false;
+      recognition.continuous = false;
+
+      recognition.onstart = () => {
+        setIsRecordingMass(true);
+        showToast(`Listening in ${speechLanguage}... Speak instructions now`, 'info');
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setMassNotes((prev) => (prev ? `${prev} ${transcript}` : transcript));
+        showToast('Voice note captured!', 'success');
+      };
+
+      recognition.onerror = () => setIsRecordingMass(false);
+      recognition.onend = () => setIsRecordingMass(false);
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.warn('Speech recognition start failed', err);
+      setIsRecordingMass(false);
+    }
+  };
+
+  // Execute Mass Assign
+  const handleExecuteMassAssign = async () => {
+    if (selectedMassComplaintIds.length === 0) {
+      showToast('Please select at least 1 complaint ticket to assign.', 'error');
+      return;
+    }
+
+    let targetVendorIds: number[] = [];
+    if (massAllocationMode === 'single') {
+      if (!selectedSingleVendorId) {
+        showToast('Please choose a vendor to assign tickets to.', 'error');
+        return;
+      }
+      targetVendorIds = [Number(selectedSingleVendorId)];
+    } else {
+      if (selectedDistributeVendorIds.length === 0) {
+        showToast('Please select at least 1 vendor to distribute tickets across.', 'error');
+        return;
+      }
+      targetVendorIds = selectedDistributeVendorIds;
+    }
+
+    setIsSubmittingMass(true);
+    try {
+      const res = await massAssignVendorTasksApi({
+        vendor_ids: targetVendorIds,
+        complaint_ids: selectedMassComplaintIds,
+        notes: massNotes.trim() || undefined,
+      });
+
+      showToast(
+        res.message || `Successfully mass assigned ${selectedMassComplaintIds.length} complaints!`,
+        'success'
+      );
+
+      setIsMassModalOpen(false);
+      setSelectedMassComplaintIds([]);
+      setMassNotes('');
+      loadVendors();
+      loadComplaints();
+    } catch (err: any) {
+      showToast(
+        err?.response?.data?.message || err?.response?.data?.error || 'Failed to mass assign vendor tasks.',
+        'error'
+      );
+    } finally {
+      setIsSubmittingMass(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Page Header */}
@@ -424,6 +685,16 @@ export const VendorAllocationPage: React.FC = () => {
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleOpenMassModal}
+            className="flex items-center gap-1.5 border-sapphire/50 text-sapphire hover:bg-sapphire/10 font-semibold shadow-xs"
+          >
+            <Layers className="w-4 h-4 text-sapphire" />
+            <span>Mass Allocation &amp; Distribution</span>
           </Button>
 
           <Button
@@ -1096,6 +1367,422 @@ Example: 302 नंबर फ्लैट में नल से पानी �
             >
               Close
             </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* =========================================================================
+          MODAL 4: MASS VENDOR ALLOCATION & WORKLOAD DISTRIBUTION (CASE STUDY)
+         ========================================================================= */}
+      <Modal
+        isOpen={isMassModalOpen}
+        onClose={() => setIsMassModalOpen(false)}
+        title="⚡ Mass Vendor Allocation & Workload Distribution"
+        subtitle="Search ~100 complaints by problem category, select all tickets, and assign to 1 vendor or distribute workload across multiple specialists."
+        maxWidth="2xl"
+      >
+        <div className="space-y-5 text-sm">
+          {/* Case study banner */}
+          <div className="p-3 bg-gradient-to-r from-sapphire/10 to-indigo-50/50 dark:to-indigo-950/20 border border-sapphire/20 rounded-lg flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-sapphire shrink-0" />
+              <span className="text-text-primary">
+                <span className="font-bold text-sapphire">Case Study Scenario:</span> Society incident creates mass complaints (e.g. electrical outage / line fault). Filter by category, select all, and balance work order dispatches via Resend email.
+              </span>
+            </div>
+            <span className="px-2 py-0.5 rounded-full font-semibold text-[11px] bg-sapphire text-white shrink-0">
+              Open Tickets: {complaints.length}
+            </span>
+          </div>
+
+          {/* STEP 1: CATEGORY SELECTION & COMPLAINT PICKER */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-sapphire text-white flex items-center justify-center text-[11px]">1</span>
+                Filter Complaints by Category &amp; Select All
+              </label>
+              <span className="text-xs font-medium text-sapphire">
+                {selectedMassComplaintIds.length} of {filteredMassComplaints.length} tickets selected
+              </span>
+            </div>
+
+            {/* Category Filter Chips */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
+              {massCategories.map((cat) => {
+                const isSelected = massCategoryFilter === cat;
+                const count = complaintCountsByCategory[cat] || 0;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setMassCategoryFilter(cat)}
+                    className={`px-3 py-1 rounded-full font-medium whitespace-nowrap transition-colors border flex items-center gap-1.5 ${
+                      isSelected
+                        ? 'bg-sapphire text-white border-sapphire shadow-xs'
+                        : 'bg-surface-secondary/40 hover:bg-surface-secondary text-text-secondary border-border'
+                    }`}
+                  >
+                    <span>{cat}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                        isSelected
+                          ? 'bg-white/20 text-white font-bold'
+                          : 'bg-background text-text-muted border border-border'
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Search and Select All Toolbar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+              <div className="relative flex-1">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                <input
+                  type="text"
+                  value={massSearchTerm}
+                  onChange={(e) => setMassSearchTerm(e.target.value)}
+                  placeholder="Filter by flat, block, ticket # or issue description..."
+                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-sapphire/20 focus:border-sapphire"
+                />
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleToggleSelectAllVisible}
+                disabled={filteredMassComplaints.length === 0}
+                className="flex items-center justify-center gap-1.5 text-xs shrink-0 border-border font-medium"
+              >
+                {filteredMassComplaints.length > 0 &&
+                filteredMassComplaints.every((c) => selectedMassComplaintIds.includes(c.id)) ? (
+                  <>
+                    <CheckSquare className="w-3.5 h-3.5 text-sapphire" />
+                    <span>Deselect All Visible</span>
+                  </>
+                ) : (
+                  <>
+                    <Square className="w-3.5 h-3.5 text-text-muted" />
+                    <span>Select All ({filteredMassComplaints.length})</span>
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Scrollable Complaints List */}
+            <div className="max-h-52 overflow-y-auto border border-border rounded-lg divide-y divide-border bg-background/50 pr-1">
+              {isLoadingComplaints ? (
+                <div className="p-6 text-center text-xs text-text-muted">
+                  <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-sapphire" />
+                  Loading complaints...
+                </div>
+              ) : filteredMassComplaints.length === 0 ? (
+                <div className="p-6 text-center text-xs text-text-muted">
+                  No open complaints matching category "{massCategoryFilter}".
+                </div>
+              ) : (
+                filteredMassComplaints.map((c) => {
+                  const isChecked = selectedMassComplaintIds.includes(c.id);
+                  return (
+                    <label
+                      key={c.id}
+                      className={`flex items-start gap-3 p-2.5 cursor-pointer text-xs transition-colors hover:bg-surface-secondary/50 ${
+                        isChecked ? 'bg-sapphire/5 dark:bg-sapphire/15' : ''
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleToggleSingleComplaint(c.id)}
+                        className="mt-0.5 rounded text-sapphire focus:ring-sapphire"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="font-bold text-text-primary">
+                            Ticket #{c.id}
+                          </span>
+                          <span className="text-text-muted">•</span>
+                          <span className="font-semibold text-text-secondary">
+                            Flat {c.flat_no || '-'}, Block {c.block_no || '-'}
+                          </span>
+                          <span className="text-text-muted">•</span>
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-surface-secondary text-text-secondary border border-border">
+                            {c.category || 'General'}
+                          </span>
+                          {c.severity && (
+                            <span
+                              className={`px-1.5 py-0.2 rounded text-[10px] font-bold uppercase ${
+                                c.severity.toLowerCase() === 'high'
+                                  ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                                  : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                              }`}
+                            >
+                              {c.severity}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-text-secondary line-clamp-1">
+                          {c.translated_text || 'No description provided'}
+                        </p>
+                      </div>
+                    </label>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* STEP 2: ALLOCATION STRATEGY & VENDOR SELECTION */}
+          <div className="space-y-3 pt-3 border-t border-border">
+            <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-sapphire text-white flex items-center justify-center text-[11px]">2</span>
+              Allocation Strategy &amp; Vendor Selection
+            </label>
+
+            {/* Mode Toggle Buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setMassAllocationMode('single')}
+                className={`p-3 rounded-lg border text-left transition-all ${
+                  massAllocationMode === 'single'
+                    ? 'border-sapphire bg-sapphire/5 text-sapphire ring-1 ring-sapphire shadow-xs'
+                    : 'border-border bg-surface hover:bg-surface-secondary/40 text-text-secondary'
+                }`}
+              >
+                <div className="flex items-center gap-2 font-bold text-xs mb-1">
+                  <Users2 className="w-4 h-4 text-sapphire" />
+                  <span>Single Vendor Assignment</span>
+                </div>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Assign 100% of selected tickets to one master vendor (e.g. all 100 tickets to one electrician).
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMassAllocationMode('distribute')}
+                className={`p-3 rounded-lg border text-left transition-all ${
+                  massAllocationMode === 'distribute'
+                    ? 'border-sapphire bg-sapphire/5 text-sapphire ring-1 ring-sapphire shadow-xs'
+                    : 'border-border bg-surface hover:bg-surface-secondary/40 text-text-secondary'
+                }`}
+              >
+                <div className="flex items-center gap-2 font-bold text-xs mb-1">
+                  <Split className="w-4 h-4 text-sapphire" />
+                  <span>Workload Distribution (Split)</span>
+                </div>
+                <p className="text-[11px] text-text-muted leading-relaxed">
+                  Evenly distribute the selected tickets across 2+ vendors (e.g. 50/50 split across electricians).
+                </p>
+              </button>
+            </div>
+
+            {/* If Single Vendor Mode */}
+            {massAllocationMode === 'single' ? (
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-text-secondary">
+                  Choose Vendor to Receive All {selectedMassComplaintIds.length} Tickets *
+                </label>
+                <select
+                  value={selectedSingleVendorId}
+                  onChange={(e) => setSelectedSingleVendorId(Number(e.target.value) || '')}
+                  className="w-full text-xs bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sapphire/20 focus:border-sapphire"
+                >
+                  <option value="">-- Select Vendor --</option>
+                  {vendors.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name} ({v.profession}) — Current Active Tasks: {v.tasks_count}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              /* If Distribute Mode: Vendor Checkboxes & Split Calculator */
+              <div className="space-y-2.5">
+                <label className="block text-xs font-medium text-text-secondary">
+                  Select 2 or More Vendors to Share the Workload:
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
+                  {vendors.map((v) => {
+                    const isChecked = selectedDistributeVendorIds.includes(v.id);
+                    return (
+                      <label
+                        key={v.id}
+                        className={`flex items-center gap-2 p-2 rounded-lg border text-xs cursor-pointer transition-colors ${
+                          isChecked
+                            ? 'border-sapphire/60 bg-sapphire/5 font-semibold text-text-primary'
+                            : 'border-border bg-surface text-text-secondary hover:bg-surface-secondary/30'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setSelectedDistributeVendorIds((prev) =>
+                              prev.includes(v.id)
+                                ? prev.filter((id) => id !== v.id)
+                                : [...prev, v.id]
+                            );
+                          }}
+                          className="rounded text-sapphire focus:ring-sapphire"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="truncate text-text-primary">{v.name}</div>
+                          <div className="text-[10px] text-text-muted truncate">
+                            {v.profession} • Tasks: {v.tasks_count}
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                {/* Live Workload Split Distribution Card */}
+                {distributionSplitPreview.length > 0 && (
+                  <div className="p-3 rounded-lg bg-surface-secondary/40 border border-border space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-text-primary flex items-center gap-1.5">
+                        <Split className="w-3.5 h-3.5 text-sapphire" />
+                        Live Workload Split Preview ({selectedMassComplaintIds.length} tickets):
+                      </span>
+                      <span className="text-[11px] font-semibold text-sapphire">
+                        {distributionSplitPreview.length} Vendors Participating
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      {distributionSplitPreview.map((item) => (
+                        <div
+                          key={item.vendor.id}
+                          className="p-2 rounded bg-surface border border-border flex items-center justify-between"
+                        >
+                          <div>
+                            <div className="font-semibold text-text-primary">
+                              {item.vendor.name}
+                            </div>
+                            <div className="text-[10px] text-text-muted">
+                              {item.vendor.profession}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-bold text-sapphire text-xs">
+                              +{item.count} tickets
+                            </span>
+                            <div className="text-[10px] text-text-muted">
+                              ({item.percentage}%)
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* STEP 3: WRITTEN OR VOICE NOTE (LOCAL LANGUAGE) */}
+          <div className="space-y-2 pt-3 border-t border-border">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-sapphire text-white flex items-center justify-center text-[11px]">3</span>
+                Work Order Instructions (Written or Voice Note in Local Language)
+              </label>
+
+              {/* Language Selector */}
+              <div className="flex items-center gap-1.5 text-xs text-text-muted">
+                <span>Lang:</span>
+                <select
+                  value={speechLanguage}
+                  onChange={(e: any) => setSpeechLanguage(e.target.value)}
+                  className="text-xs bg-background border border-border rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-sapphire"
+                >
+                  <option value="hi-IN">Hindi (हिंदी)</option>
+                  <option value="en-IN">English (Indian)</option>
+                  <option value="bn-IN">Bengali (বাংলা)</option>
+                  <option value="ta-IN">Tamil (தமிழ்)</option>
+                  <option value="te-IN">Telugu (తెలుగు)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="relative">
+              <textarea
+                rows={3}
+                value={massNotes}
+                onChange={(e) => setMassNotes(e.target.value)}
+                placeholder="Enter batch dispatch note in your local language or click microphone to dictate (e.g. 'कृपया सोसाइटी के सभी फ्लैट्स में मेन लाइन और फॉल्ट चेक करें')..."
+                className="w-full text-xs bg-background border border-border rounded-lg p-2.5 pr-12 focus:outline-none focus:ring-2 focus:ring-sapphire/20 focus:border-sapphire"
+              />
+
+              <button
+                type="button"
+                onClick={toggleMassVoiceRecording}
+                className={`absolute right-2.5 bottom-3 p-1.5 rounded-full transition-colors ${
+                  isRecordingMass
+                    ? 'bg-rose-500 text-white animate-pulse'
+                    : 'bg-surface-secondary hover:bg-border text-text-secondary'
+                }`}
+                title="Dictate voice note in local language"
+              >
+                {isRecordingMass ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between pt-3 border-t border-border">
+            <div className="text-xs text-text-muted">
+              {selectedMassComplaintIds.length > 0 ? (
+                <span>
+                  Ready to assign <span className="font-bold text-text-primary">{selectedMassComplaintIds.length}</span> tickets
+                </span>
+              ) : (
+                <span className="text-amber-600 dark:text-amber-400">
+                  Select at least 1 ticket to proceed
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsMassModalOpen(false)}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                disabled={isSubmittingMass || selectedMassComplaintIds.length === 0}
+                onClick={handleExecuteMassAssign}
+                className="bg-sapphire hover:bg-sapphire-dark text-white flex items-center gap-1.5"
+              >
+                {isSubmittingMass ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Dispatching via Resend...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>
+                      Confirm &amp; Dispatch Batch Orders ({selectedMassComplaintIds.length})
+                    </span>
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </Modal>

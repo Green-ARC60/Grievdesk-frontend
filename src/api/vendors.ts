@@ -5,6 +5,8 @@ import {
   UpdateVendorPayload,
   AssignVendorTaskPayload,
   AssignVendorTaskResponse,
+  MassAssignVendorPayload,
+  MassAssignVendorResponse,
 } from '../types/vendors';
 
 export async function getVendorsApi(params?: {
@@ -59,6 +61,16 @@ export async function assignVendorTaskApi(
 ): Promise<AssignVendorTaskResponse> {
   const response = await apiClient.post<AssignVendorTaskResponse>(
     `/vendors/${vendorId}/assign`,
+    payload
+  );
+  return response.data;
+}
+
+export async function massAssignVendorTasksApi(
+  payload: MassAssignVendorPayload
+): Promise<MassAssignVendorResponse> {
+  const response = await apiClient.post<MassAssignVendorResponse>(
+    '/vendors/mass-assign',
     payload
   );
   return response.data;
