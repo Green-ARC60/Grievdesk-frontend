@@ -14,6 +14,8 @@ import {
   Languages,
   Send,
   Loader2,
+  Mail,
+  User,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -32,6 +34,8 @@ import {
   getMyDuesApi,
   getStaffDuesApi,
   createDueApi,
+  updateDueApi,
+  sendDueEmailApi,
   markDuePaidApi,
   remindDueApi,
 } from '../api/announcements';
@@ -100,7 +104,27 @@ export const AnnouncementsDuesPage: React.FC = () => {
   });
   const [newDueFlat, setNewDueFlat] = useState('');
   const [newDueBlock, setNewDueBlock] = useState('');
+  const [newDueResidentName, setNewDueResidentName] = useState('');
+  const [newDueGmail, setNewDueGmail] = useState('');
+  const [newDueNotes, setNewDueNotes] = useState('');
   const [isCreatingDue, setIsCreatingDue] = useState(false);
+
+  // Edit Due Modal (Pencil ✏️ Action)
+  const [editingDue, setEditingDue] = useState<Due | null>(null);
+  const [editDueResidentName, setEditDueResidentName] = useState('');
+  const [editDueGmail, setEditDueGmail] = useState('');
+  const [editDueAmount, setEditDueAmount] = useState('');
+  const [editDueDueDate, setEditDueDueDate] = useState('');
+  const [editDueMonth, setEditDueMonth] = useState('');
+  const [editDueNotes, setEditDueNotes] = useState('');
+  const [editDueStatus, setEditDueStatus] = useState<'paid' | 'unpaid'>('unpaid');
+  const [isSavingDueEdit, setIsSavingDueEdit] = useState(false);
+
+  // Send Direct Due Bill Email Modal
+  const [emailingDue, setEmailingDue] = useState<Due | null>(null);
+  const [emailDueGmail, setEmailDueGmail] = useState('');
+  const [emailDueNotes, setEmailDueNotes] = useState('');
+  const [isSendingDueEmail, setIsSendingDueEmail] = useState(false);
 
   // Send Reminder Modal
   const [remindingDue, setRemindingDue] = useState<Due | null>(null);
@@ -251,8 +275,7 @@ export const AnnouncementsDuesPage: React.FC = () => {
     }
   };
 
-  const handleCreateDueSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateDueSubmit = async (sendEmail: boolean) => {
     setIsCreatingDue(true);
     setDuesError(null);
     try {
@@ -264,10 +287,20 @@ export const AnnouncementsDuesPage: React.FC = () => {
         due_date: newDueDueDate,
         flat_no: newDueFlat.trim(),
         block_no: cleanBlock,
+        notes: newDueNotes.trim() || undefined,
+        recipient_email: newDueGmail.trim() || undefined,
+        send_email: sendEmail,
       });
-      setDuesSuccess('Maintenance due record created.');
+      setDuesSuccess(
+        sendEmail
+          ? `Maintenance due created & invoice email dispatched to ${newDueGmail.trim() || 'resident'} via Resend!`
+          : 'Maintenance due saved as draft.'
+      );
       setIsCreateDueOpen(false);
       setSelectedResidentId('');
+      setNewDueResidentName('');
+      setNewDueGmail('');
+      setNewDueNotes('');
       setNewDueAmount('');
       setNewDueFlat('');
       setNewDueBlock('');
@@ -276,6 +309,71 @@ export const AnnouncementsDuesPage: React.FC = () => {
       setDuesError(mapBackendError(err));
     } finally {
       setIsCreatingDue(false);
+    }
+  };
+
+  const handleOpenEditDue = (due: Due) => {
+    setEditingDue(due);
+    setEditDueResidentName(due.resident_name || due.resident || '');
+    setEditDueGmail(due.gmail || '');
+    setEditDueAmount(String(due.amount));
+    setEditDueDueDate(due.due_date);
+    setEditDueMonth(due.month);
+    setEditDueNotes(due.notes || '');
+    setEditDueStatus(due.paid_status);
+  };
+
+  const handleSaveDueEdit = async (sendEmail: boolean) => {
+    if (!editingDue) return;
+    setIsSavingDueEdit(true);
+    setDuesError(null);
+    try {
+      await updateDueApi(editingDue.id, {
+        amount: parseFloat(editDueAmount),
+        due_date: editDueDueDate,
+        month: editDueMonth,
+        notes: editDueNotes.trim() || undefined,
+        recipient_email: editDueGmail.trim() || undefined,
+        paid_status: editDueStatus,
+        send_email: sendEmail,
+      });
+      setDuesSuccess(
+        sendEmail
+          ? `Due record updated and email invoice dispatched to ${editDueGmail || 'resident'}!`
+          : 'Due record updated successfully.'
+      );
+      setEditingDue(null);
+      fetchDues();
+    } catch (err) {
+      setDuesError(mapBackendError(err));
+    } finally {
+      setIsSavingDueEdit(false);
+    }
+  };
+
+  const handleOpenSendDueEmail = (due: Due) => {
+    setEmailingDue(due);
+    setEmailDueGmail(due.gmail || '');
+    setEmailDueNotes(due.notes || '');
+  };
+
+  const handleSendDueEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailingDue) return;
+    setIsSendingDueEmail(true);
+    setDuesError(null);
+    try {
+      const res = await sendDueEmailApi(emailingDue.id, {
+        notes: emailDueNotes.trim() || undefined,
+        recipient_email: emailDueGmail.trim() || undefined,
+      });
+      setDuesSuccess(res.message);
+      setEmailingDue(null);
+      fetchDues();
+    } catch (err) {
+      setDuesError(mapBackendError(err));
+    } finally {
+      setIsSendingDueEmail(false);
     }
   };
 
@@ -835,7 +933,9 @@ export const AnnouncementsDuesPage: React.FC = () => {
                     <table className="w-full text-left text-xs text-text-secondary">
                       <thead className="bg-surface-elevated border-b border-border text-text-muted uppercase tracking-wider font-semibold">
                         <tr>
-                          <th className="py-3 px-4">Flat / Resident</th>
+                          <th className="py-3 px-4">Flat &amp; Block</th>
+                          <th className="py-3 px-4">Name of People</th>
+                          <th className="py-3 px-4">Gmail</th>
                           <th className="py-3 px-4">Month</th>
                           <th className="py-3 px-4">Amount</th>
                           <th className="py-3 px-4">Due Date</th>
@@ -846,20 +946,42 @@ export const AnnouncementsDuesPage: React.FC = () => {
                       <tbody className="divide-y divide-border">
                         {staffDues.map((d) => (
                           <tr key={d.id} className="hover:bg-surface-elevated/70 transition-colors">
-                            <td className="py-3.5 px-4 font-bold text-text-primary">
-                              Flat {d.flat_no}, {d.block_no}
-                              {d.resident_name && (
-                                <span className="text-[11px] font-normal text-text-muted block">
-                                  {d.resident_name}
-                                </span>
-                              )}
+                            {/* Flat & Block */}
+                            <td className="py-3.5 px-4 font-bold text-text-primary whitespace-nowrap">
+                              Flat {d.flat_no}, Block {d.block_no}
                             </td>
-                            <td className="py-3.5 px-4 font-bold text-text-primary">{d.month}</td>
-                            <td className="py-3.5 px-4 font-semibold text-text-primary">
+
+                            {/* Name of People */}
+                            <td className="py-3.5 px-4 font-semibold text-text-primary whitespace-nowrap">
+                              <div className="flex items-center gap-1.5">
+                                <User className="w-3.5 h-3.5 text-text-muted shrink-0" />
+                                <span>{d.resident_name || d.resident || 'Resident'}</span>
+                              </div>
+                            </td>
+
+                            {/* Gmail */}
+                            <td className="py-3.5 px-4 text-text-secondary whitespace-nowrap">
+                              <div className="flex items-center gap-1.5">
+                                <Mail className="w-3.5 h-3.5 text-text-muted shrink-0" />
+                                <span className="font-mono text-[11px] text-text-primary" title={d.gmail || ''}>
+                                  {d.gmail || 'No email registered'}
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* Month */}
+                            <td className="py-3.5 px-4 font-bold text-text-primary whitespace-nowrap">{d.month}</td>
+
+                            {/* Amount */}
+                            <td className="py-3.5 px-4 font-semibold text-text-primary whitespace-nowrap">
                               ₹{parseFloat(String(d.amount)).toLocaleString()}
                             </td>
-                            <td className="py-3.5 px-4 text-text-secondary">{d.due_date}</td>
-                            <td className="py-3.5 px-4">
+
+                            {/* Due Date */}
+                            <td className="py-3.5 px-4 text-text-secondary whitespace-nowrap">{d.due_date}</td>
+
+                            {/* Status */}
+                            <td className="py-3.5 px-4 whitespace-nowrap">
                               <span
                                 className={`inline-flex items-center px-2 py-0.5 rounded-full font-bold text-[10px] uppercase ${
                                   d.paid_status === 'paid'
@@ -870,7 +992,33 @@ export const AnnouncementsDuesPage: React.FC = () => {
                                 {d.paid_status}
                               </span>
                             </td>
-                            <td className="py-3.5 px-4 text-right space-x-1.5">
+
+                            {/* Staff Actions */}
+                            <td className="py-3.5 px-4 text-right whitespace-nowrap space-x-1.5">
+                              {/* Pencil Edit Button (✏️) */}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditDue(d)}
+                                className="p-1.5 text-text-muted hover:text-sapphire hover:bg-surface-elevated rounded-md transition-colors"
+                                title="Edit due record & recipient Gmail"
+                              >
+                                <Edit3 className="w-4 h-4 text-sapphire" />
+                              </button>
+
+                              {/* Send Email Bill Button */}
+                              {d.paid_status === 'unpaid' && (
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => handleOpenSendDueEmail(d)}
+                                  leftIcon={<Send className="w-3 h-3" />}
+                                  className="text-[11px] py-1 px-2.5"
+                                  title="Send invoice email with notes to resident's Gmail via Resend"
+                                >
+                                  Send Email
+                                </Button>
+                              )}
+
                               {/* Toggle Paid Button */}
                               <Button
                                 variant="outline"
@@ -889,14 +1037,15 @@ export const AnnouncementsDuesPage: React.FC = () => {
                               {/* AI Reminder Button */}
                               {d.paid_status === 'unpaid' && (
                                 <Button
-                                  variant="secondary"
+                                  variant="outline"
                                   size="sm"
                                   onClick={() => {
                                     setRemindingDue(d);
                                     setReminderNote('');
                                   }}
-                                  leftIcon={<Send className="w-3 h-3" />}
-                                  className="text-[11px] py-1 px-2.5"
+                                  leftIcon={<BellRing className="w-3 h-3" />}
+                                  className="text-[11px] py-1 px-2"
+                                  title="Private in-app reminder"
                                 >
                                   AI Remind
                                 </Button>
@@ -913,14 +1062,22 @@ export const AnnouncementsDuesPage: React.FC = () => {
               {/* Create Due Modal */}
               {isCreateDueOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-                  <div className="bg-surface w-full max-w-md rounded-card p-6 shadow-soft border border-border space-y-4 animate-fadeIn">
+                  <div className="bg-surface w-full max-w-lg rounded-card p-6 shadow-soft border border-border space-y-4 animate-fadeIn">
                     <div className="flex items-center justify-between pb-3 border-b border-border">
-                      <h3 className="font-heading font-semibold text-text text-base">Create Maintenance Due</h3>
+                      <div>
+                        <h3 className="font-heading font-semibold text-text text-base">Create Maintenance Due</h3>
+                        <p className="text-xs text-text-muted mt-0.5">
+                          Pick resident from Directory, attach payment notes, and choose Draft or Draft &amp; Send
+                        </p>
+                      </div>
                       <button
                         type="button"
                         onClick={() => {
                           setIsCreateDueOpen(false);
                           setSelectedResidentId('');
+                          setNewDueResidentName('');
+                          setNewDueGmail('');
+                          setNewDueNotes('');
                           setDuesError(null);
                         }}
                         className="text-muted hover:text-text p-1 rounded-control"
@@ -935,11 +1092,12 @@ export const AnnouncementsDuesPage: React.FC = () => {
                       </Alert>
                     )}
 
-                    <form onSubmit={handleCreateDueSubmit} className="space-y-3.5">
+                    <div className="space-y-3.5">
+                      {/* Pick Resident from Resident Directory */}
                       {directoryResidents.length > 0 && (
                         <div>
-                          <label className="block text-xs font-medium text-muted mb-1">
-                            Select Resident (Optional)
+                          <label className="block text-xs font-semibold text-text mb-1">
+                            Pick Resident from Directory *
                           </label>
                           <select
                             value={selectedResidentId}
@@ -947,38 +1105,60 @@ export const AnnouncementsDuesPage: React.FC = () => {
                               const val = e.target.value;
                               if (val === '') {
                                 setSelectedResidentId('');
+                                setNewDueResidentName('');
+                                setNewDueGmail('');
                               } else {
                                 const idNum = Number(val);
                                 setSelectedResidentId(idNum);
                                 const found = directoryResidents.find((r) => r.id === idNum);
                                 if (found) {
+                                  setNewDueResidentName(found.name || '');
                                   setNewDueFlat(found.flat_no || '');
                                   setNewDueBlock(found.block_no || '');
+                                  setNewDueGmail(found.gmail || '');
                                 }
                               }
                             }}
-                            className="w-full px-3 py-2 text-sm bg-surface border border-border rounded-control text-text focus:outline-none focus:border-accent"
+                            className="w-full px-3 py-2 text-xs bg-surface border border-border rounded-control text-text focus:outline-none focus:border-accent"
                           >
-                            <option value="">-- Choose a resident or enter below --</option>
+                            <option value="">-- Choose resident from directory --</option>
                             {directoryResidents.map((r) => (
                               <option key={r.id} value={r.id}>
-                                {r.name} (Flat {r.flat_no}, Block {r.block_no})
+                                {r.name} • Flat {r.flat_no}, Block {r.block_no} • {r.gmail}
                               </option>
                             ))}
                           </select>
                         </div>
                       )}
 
+                      {/* Name of People & Target Gmail */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Input
+                          label="Name of Person"
+                          placeholder="Resident Name"
+                          value={newDueResidentName}
+                          onChange={(e) => setNewDueResidentName(e.target.value)}
+                        />
+                        <Input
+                          label="Resident Gmail (Receives Bill)"
+                          type="email"
+                          placeholder="e.g. resident@gmail.com"
+                          value={newDueGmail}
+                          onChange={(e) => setNewDueGmail(e.target.value)}
+                        />
+                      </div>
+
+                      {/* Flat & Block */}
                       <div className="grid grid-cols-2 gap-3">
                         <Input
-                          label="Target Flat"
+                          label="Target Flat *"
                           placeholder="e.g. 402"
                           value={newDueFlat}
                           onChange={(e) => setNewDueFlat(e.target.value)}
                           required
                         />
                         <Input
-                          label="Target Block"
+                          label="Target Block *"
                           placeholder="e.g. A"
                           value={newDueBlock}
                           onChange={(e) => setNewDueBlock(e.target.value)}
@@ -986,19 +1166,19 @@ export const AnnouncementsDuesPage: React.FC = () => {
                         />
                       </div>
 
+                      {/* Month & Amount */}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <Input
-                            label="Month (YYYY-MM)"
+                            label="Month (YYYY-MM) *"
                             placeholder="2026-11"
                             value={newDueMonth}
                             onChange={(e) => setNewDueMonth(e.target.value)}
                             required
                           />
-                          <p className="text-[11px] text-muted mt-1">One due per flat per month (e.g. 2026-12).</p>
                         </div>
                         <Input
-                          label="Amount (₹)"
+                          label="Amount (₹) *"
                           type="number"
                           placeholder="2500"
                           value={newDueAmount}
@@ -1007,15 +1187,34 @@ export const AnnouncementsDuesPage: React.FC = () => {
                         />
                       </div>
 
+                      {/* Payment Due Date */}
                       <Input
-                        label="Payment Due Date"
+                        label="Payment Due Date *"
                         type="date"
                         value={newDueDueDate}
                         onChange={(e) => setNewDueDueDate(e.target.value)}
                         required
                       />
 
-                      <div className="flex justify-end gap-2 pt-3">
+                      {/* Payment Note / Instructions */}
+                      <div>
+                        <label className="block text-xs font-semibold text-text mb-1">
+                          Payment Instructions / Note for Resident
+                        </label>
+                        <textarea
+                          rows={2}
+                          placeholder="e.g. Maintenance fee for security, lift, and generator fuel. Please pay via UPI to society@upi or Bank Transfer by due date."
+                          value={newDueNotes}
+                          onChange={(e) => setNewDueNotes(e.target.value)}
+                          className="app-input w-full text-xs p-2.5 rounded-control"
+                        />
+                        <p className="text-[11px] text-muted mt-1">
+                          This note will be included directly inside the official invoice email delivered via Resend / SMTP.
+                        </p>
+                      </div>
+
+                      {/* Actions: Save Draft vs Draft & Send */}
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-3 border-t border-border">
                         <Button
                           type="button"
                           variant="outline"
@@ -1023,13 +1222,245 @@ export const AnnouncementsDuesPage: React.FC = () => {
                           onClick={() => {
                             setIsCreateDueOpen(false);
                             setSelectedResidentId('');
+                            setNewDueResidentName('');
+                            setNewDueGmail('');
+                            setNewDueNotes('');
                             setDuesError(null);
                           }}
                         >
                           Cancel
                         </Button>
-                        <Button type="submit" variant="primary" size="sm" isLoading={isCreatingDue}>
-                          Create Due
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            disabled={isCreatingDue || !newDueFlat || !newDueAmount}
+                            onClick={() => handleCreateDueSubmit(false)}
+                          >
+                            Save as Draft
+                          </Button>
+
+                          <Button
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            disabled={isCreatingDue || !newDueFlat || !newDueAmount}
+                            onClick={() => handleCreateDueSubmit(true)}
+                            leftIcon={<Send className="w-3.5 h-3.5" />}
+                            className="bg-sapphire hover:bg-sapphire-dark text-white font-semibold"
+                          >
+                            {isCreatingDue ? 'Processing...' : 'Draft & Send Email'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Edit Due Record Modal (Pencil ✏️ Action) */}
+              {editingDue && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+                  <div className="bg-surface w-full max-w-lg rounded-card p-6 shadow-soft border border-border space-y-4 animate-fadeIn">
+                    <div className="flex items-center justify-between pb-3 border-b border-border">
+                      <div>
+                        <h3 className="font-heading font-semibold text-text text-base flex items-center gap-2">
+                          <Edit3 className="w-4 h-4 text-sapphire" />
+                          Edit Maintenance Due Record
+                        </h3>
+                        <p className="text-xs text-text-muted mt-0.5">
+                          Flat {editingDue.flat_no}, Block {editingDue.block_no} • {editingDue.resident_name || 'Resident'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditingDue(null)}
+                        className="text-muted hover:text-text p-1 rounded-control"
+                      >
+                        &times;
+                      </button>
+                    </div>
+
+                    <div className="space-y-3.5">
+                      {/* Name & Recipient Gmail */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-text mb-1">Name of Person</label>
+                          <input
+                            type="text"
+                            disabled
+                            value={editDueResidentName}
+                            className="app-input w-full text-xs py-2 px-3 rounded-lg bg-surface-elevated text-text-muted cursor-not-allowed"
+                          />
+                        </div>
+                        <Input
+                          label="Recipient Gmail (Editable) *"
+                          type="email"
+                          placeholder="e.g. resident@gmail.com"
+                          value={editDueGmail}
+                          onChange={(e) => setEditDueGmail(e.target.value)}
+                        />
+                      </div>
+
+                      {/* Month & Amount */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <Input
+                          label="Month (YYYY-MM) *"
+                          value={editDueMonth}
+                          onChange={(e) => setEditDueMonth(e.target.value)}
+                        />
+                        <Input
+                          label="Amount (₹) *"
+                          type="number"
+                          value={editDueAmount}
+                          onChange={(e) => setEditDueAmount(e.target.value)}
+                        />
+                      </div>
+
+                      {/* Due Date & Paid Status */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <Input
+                          label="Payment Due Date *"
+                          type="date"
+                          value={editDueDueDate}
+                          onChange={(e) => setEditDueDueDate(e.target.value)}
+                        />
+                        <div>
+                          <label className="block text-xs font-semibold text-text mb-1">Status</label>
+                          <select
+                            value={editDueStatus}
+                            onChange={(e: any) => setEditDueStatus(e.target.value)}
+                            className="app-input w-full text-xs py-2 px-3 rounded-lg"
+                          >
+                            <option value="unpaid">Unpaid</option>
+                            <option value="paid">Paid</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Notes / Instructions */}
+                      <div>
+                        <label className="block text-xs font-semibold text-text mb-1">
+                          Payment Instructions / Note
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={editDueNotes}
+                          onChange={(e) => setEditDueNotes(e.target.value)}
+                          placeholder="Add or update notes attached to this due..."
+                          className="app-input w-full text-xs p-2.5 rounded-control"
+                        />
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-3 border-t border-border">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingDue(null)}
+                        >
+                          Cancel
+                        </Button>
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            disabled={isSavingDueEdit}
+                            onClick={() => handleSaveDueEdit(false)}
+                          >
+                            Save Changes
+                          </Button>
+
+                          <Button
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            disabled={isSavingDueEdit}
+                            onClick={() => handleSaveDueEdit(true)}
+                            leftIcon={<Send className="w-3.5 h-3.5" />}
+                            className="bg-sapphire hover:bg-sapphire-dark text-white font-semibold"
+                          >
+                            {isSavingDueEdit ? 'Saving...' : 'Save & Send Email Notice'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Send Email Bill Modal */}
+              {emailingDue && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+                  <div className="bg-surface w-full max-w-md rounded-card p-6 shadow-soft border border-border space-y-4 animate-fadeIn">
+                    <div className="flex items-center justify-between pb-3 border-b border-border">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-sapphire" />
+                        <h3 className="font-heading font-semibold text-text text-base">Send Maintenance Due Invoice</h3>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEmailingDue(null)}
+                        className="text-muted hover:text-text p-1 rounded-control"
+                      >
+                        &times;
+                      </button>
+                    </div>
+
+                    <div className="p-3 rounded-control bg-surface-2 border border-border text-xs text-muted space-y-1">
+                      <p>
+                        Target Resident: <strong className="text-text font-medium">{emailingDue.resident_name || 'Resident'}</strong> (Flat {emailingDue.flat_no}, Block {emailingDue.block_no})
+                      </p>
+                      <p>
+                        Payable Amount: <strong className="text-rose-600 font-mono font-bold">₹{parseFloat(String(emailingDue.amount)).toLocaleString()}</strong> for <strong className="text-text font-medium">{emailingDue.month}</strong>
+                      </p>
+                    </div>
+
+                    <form onSubmit={handleSendDueEmailSubmit} className="space-y-3">
+                      <Input
+                        label="Recipient Gmail *"
+                        type="email"
+                        value={emailDueGmail}
+                        onChange={(e) => setEmailDueGmail(e.target.value)}
+                        required
+                      />
+
+                      <div>
+                        <label className="block text-xs font-semibold text-text mb-1">
+                          Payment Instructions / Note
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={emailDueNotes}
+                          onChange={(e) => setEmailDueNotes(e.target.value)}
+                          placeholder="e.g. Please clear this month maintenance fee via UPI or Net Banking by 25th."
+                          className="app-input w-full text-xs p-2.5 rounded-control"
+                        />
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEmailingDue(null)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="submit"
+                          variant="primary"
+                          size="sm"
+                          isLoading={isSendingDueEmail}
+                          leftIcon={<Send className="w-3.5 h-3.5" />}
+                          className="bg-sapphire hover:bg-sapphire-dark text-white font-semibold"
+                        >
+                          Send Bill Email (Resend)
                         </Button>
                       </div>
                     </form>

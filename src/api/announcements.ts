@@ -6,6 +6,7 @@ import {
   StaffDuesResponse,
   Due,
   CreateDuePayload,
+  UpdateDuePayload,
   DuesFilterParams,
 } from '../types/announcements';
 
@@ -76,4 +77,27 @@ export async function remindDueApi(id: number, note?: string): Promise<{ message
   const response = await apiClient.post<{ message: string; reminder: string }>(`/dues/${id}/remind`, { note });
   return response.data;
 }
+
+export async function updateDueApi(
+  id: number,
+  payload: UpdateDuePayload
+): Promise<{ message: string; due: Due; email_sent?: boolean }> {
+  const response = await apiClient.patch<{ message: string; due: Due; email_sent?: boolean }>(
+    `/dues/${id}`,
+    payload
+  );
+  return response.data;
+}
+
+export async function sendDueEmailApi(
+  id: number,
+  payload?: { notes?: string; recipient_email?: string }
+): Promise<{ message: string; email_sent: boolean; due: Due }> {
+  const response = await apiClient.post<{ message: string; email_sent: boolean; due: Due }>(
+    `/dues/${id}/send-email`,
+    payload || {}
+  );
+  return response.data;
+}
+
 

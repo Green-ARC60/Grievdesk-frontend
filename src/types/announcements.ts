@@ -25,6 +25,9 @@ export interface Due {
   id: number;
   user_id: number;
   resident_name?: string;
+  resident?: string;
+  gmail?: string;
+  recipient_email?: string;
   flat_no?: string;
   block_no?: string;
   month: string; // YYYY-MM
@@ -32,6 +35,8 @@ export interface Due {
   due_date: string; // YYYY-MM-DD
   paid_status: PaidStatusType;
   paid_at?: string | null;
+  notes?: string | null;
+  created_at?: string | null;
 }
 
 export interface ResidentDuesResponse {
@@ -53,6 +58,19 @@ export interface CreateDuePayload {
   flat_no?: string;
   block_no?: string;
   user_id?: number;
+  notes?: string;
+  recipient_email?: string;
+  send_email?: boolean;
+}
+
+export interface UpdateDuePayload {
+  amount?: number | string;
+  due_date?: string;
+  month?: string;
+  notes?: string;
+  recipient_email?: string;
+  paid_status?: PaidStatusType;
+  send_email?: boolean;
 }
 
 export interface DuesFilterParams {
