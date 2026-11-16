@@ -73,7 +73,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="/vendor-allocation"
           element={
-            <ProtectedRoute allowedRoles={['secretary', 'committee']}>
+            <ProtectedRoute>
               <VendorAllocationPage />
             </ProtectedRoute>
           }
