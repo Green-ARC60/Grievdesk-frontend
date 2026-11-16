@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Wrench,
   AlertCircle,
@@ -9,12 +9,15 @@ import {
   PlusCircle,
   EyeOff,
   Link as LinkIcon,
+  ExternalLink,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { Complaint, ServiceRequestTicket } from '../types/complaints';
 import { getMyTicketsApi, getComplaintAudioBlobUrl } from '../api/complaints';
 import { StatusBadge, SeverityBadge } from '../components/complaints/ComplaintStatusBadge';
 import { ComplaintTimeline } from '../components/complaints/ComplaintTimeline';
+import { ComplaintDetailModal } from '../components/complaints/ComplaintDetailModal';
 import { Button } from '../components/ui/Button';
 import { Alert } from '../components/ui/Alert';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -22,11 +25,15 @@ import { TableSkeleton } from '../components/ui/Skeleton';
 import { mapBackendError } from '../api/errorMapper';
 
 export const MyTicketsPage: React.FC = () => {
+  const { isCommitteeOrAbove } = useAuth();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [serviceRequests, setServiceRequests] = useState<ServiceRequestTicket[]>([]);
   const [activeTab, setActiveTab] = useState<'complaints' | 'services'>('complaints');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Detail Modal
+  const [selectedComplaintId, setSelectedComplaintId] = useState<number | null>(null);
 
   // Expanded timelines map: { ticketId: boolean }
   const [expandedTimelines, setExpandedTimelines] = useState<Record<string, boolean>>({});
@@ -35,29 +42,23 @@ export const MyTicketsPage: React.FC = () => {
   const [audioUrls, setAudioUrls] = useState<Record<number, string>>({});
   const [loadingAudioId, setLoadingAudioId] = useState<number | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
-    const fetchTickets = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const res = await getMyTicketsApi();
-        if (isMounted) {
-          setComplaints(res.complaints || []);
-          setServiceRequests(res.service_requests || []);
-        }
-      } catch (err) {
-        if (isMounted) setError(mapBackendError(err));
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    fetchTickets();
-    return () => {
-      isMounted = false;
-    };
+  const fetchTickets = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await getMyTicketsApi();
+      setComplaints(res.complaints || []);
+      setServiceRequests(res.service_requests || []);
+    } catch (err) {
+      setError(mapBackendError(err));
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchTickets();
+  }, [fetchTickets]);
 
   const toggleTimeline = (key: string) => {
     setExpandedTimelines((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -225,8 +226,8 @@ export const MyTicketsPage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Timeline toggle button */}
-                  <div className="pt-2 border-t border-border flex justify-between items-center text-xs text-muted">
+                  {/* Action and Timeline footer */}
+                  <div className="pt-2 border-t border-border flex flex-wrap justify-between items-center gap-2 text-xs text-muted">
                     <span>
                       {c.assigned_to ? (
                         <>
@@ -237,18 +238,29 @@ export const MyTicketsPage: React.FC = () => {
                       )}
                     </span>
 
-                    <button
-                      type="button"
-                      onClick={() => toggleTimeline(timelineKey)}
-                      className="font-medium text-accent hover:underline flex items-center gap-1 transition-colors"
-                    >
-                      <span>{isTimelineOpen ? 'Hide Status Timeline' : 'View Status Timeline'}</span>
-                      {isTimelineOpen ? (
-                        <ChevronUp className="w-3.5 h-3.5" />
-                      ) : (
-                        <ChevronDown className="w-3.5 h-3.5" />
-                      )}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedComplaintId(c.id)}
+                        className="font-medium text-accent hover:underline flex items-center gap-1 transition-colors"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Manage / Update Status</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => toggleTimeline(timelineKey)}
+                        className="font-medium text-muted hover:text-text flex items-center gap-1 transition-colors"
+                      >
+                        <span>{isTimelineOpen ? 'Hide Timeline' : 'View Timeline'}</span>
+                        {isTimelineOpen ? (
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        ) : (
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Expandable Timeline */}
@@ -331,6 +343,16 @@ export const MyTicketsPage: React.FC = () => {
             })}
           </div>
         )
+      )}
+
+      {/* Complaint Detail & Status Modal */}
+      {selectedComplaintId && (
+        <ComplaintDetailModal
+          complaintId={selectedComplaintId}
+          onClose={() => setSelectedComplaintId(null)}
+          isStaff={isCommitteeOrAbove}
+          onComplaintUpdated={fetchTickets}
+        />
       )}
     </div>
   );
