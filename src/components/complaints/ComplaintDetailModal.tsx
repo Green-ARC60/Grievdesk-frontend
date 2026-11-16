@@ -552,6 +552,67 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Resident Owner Status Section (Only Status Change based on Screenshot) */}
+              {!isStaff && (complaint.is_owner || complaint.can_edit_status) && (
+                <div className="mt-6 pt-6 border-t-[1.5px] border-border space-y-4">
+                  {/* Status Change Form */}
+                  <form onSubmit={handleUpdateStatus} className="space-y-3 bg-surface p-4 rounded-card border-[1.5px] border-border shadow-soft">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-text block">
+                        1. Change Complaint Status
+                      </span>
+                      <span className="text-[11px] font-semibold text-accent bg-accent/10 px-2 py-0.5 rounded">
+                        Complaint Author Control
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-muted mb-1">
+                          New Status
+                        </label>
+                        <select
+                          value={newStatus}
+                          onChange={(e) => setNewStatus(e.target.value as ComplaintStatusType)}
+                          className="app-input w-full text-xs py-2 px-3 rounded-lg"
+                        >
+                          {COMPLAINT_STATUSES.map((st) => (
+                            <option key={st.value} value={st.value}>
+                              {st.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-text-muted mb-1">
+                          Resolution / Status Notes
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Plumber dispatched, leak fixed"
+                          value={resolutionNotes}
+                          onChange={(e) => setResolutionNotes(e.target.value)}
+                          className="app-input w-full text-xs py-2 px-3 rounded-lg"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-1">
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        size="sm"
+                        isLoading={isUpdatingStatus}
+                        className="text-xs"
+                      >
+                        Save Status
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              )}
             </>
           ) : null}
         </div>

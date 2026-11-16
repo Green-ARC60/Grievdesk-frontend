@@ -52,6 +52,8 @@ export interface Complaint {
   resolution_notes_local?: string | null;
   audio_available: boolean;
   created_at: string;
+  is_owner?: boolean;
+  can_edit_status?: boolean;
   timeline?: TicketTimelineEvent[];
   linked_reports?: number[];
 }

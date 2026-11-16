@@ -41,7 +41,7 @@ export async function updateComplaintStatusApi(
 ): Promise<{ message: string; complaint: Complaint }> {
   const response = await apiClient.patch<{ message: string; complaint: Complaint }>(
     `/complaints/${id}/status`,
-    { status, notes }
+    { status, notes, resolution_notes: notes }
   );
   return response.data;
 }
