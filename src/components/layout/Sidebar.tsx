@@ -30,7 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClose,
   onSelectRecentThread,
 }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isCommitteeOrAbove } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -82,11 +82,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Resident Directory',
       icon: <Users className="w-4 h-4 shrink-0" />,
     },
-    {
-      to: '/vendor-allocation',
-      label: 'Vendor Allocation',
-      icon: <Wrench className="w-4 h-4 shrink-0" />,
-    },
+    ...(isCommitteeOrAbove
+      ? [
+          {
+            to: '/vendor-allocation',
+            label: 'Vendor Allocation',
+            icon: <Wrench className="w-4 h-4 shrink-0" />,
+          },
+        ]
+      : []),
     {
       to: '/profile',
       label: 'Profile',

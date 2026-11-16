@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Navigate } from 'react-router-dom';
 import {
   Wrench,
   Search,
@@ -25,7 +26,9 @@ import {
   CheckSquare,
   Square,
   Users2,
+  Filter,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { useToast } from '../components/ui/Toast';
@@ -62,8 +65,45 @@ const STANDARD_PROFESSIONS = [
   'Other Helper / Vendor',
 ];
 
+// Mapping between vendor profession and matching public inbox complaint categories
+export const PROFESSION_CATEGORY_MAP: Record<string, string[]> = {
+  'Plumber': ['Plumbing', 'Water Supply'],
+  'Water Tank Supplier': ['Water Supply', 'Plumbing'],
+  'Electrician': ['Electrical'],
+  'Line Electrician (Society Mains)': ['Electrical'],
+  'AC Repairer': ['Electrical', 'Other'],
+  'Electronics Repairer': ['Electrical', 'Other'],
+  'Security Guard': ['Security', 'Parking', 'Noise'],
+  'Sanitation / Cleaner': ['Sanitation'],
+  'Housekeeping': ['Sanitation'],
+  'Gardener': ['Sanitation', 'Other'],
+  'Elevator Technician': ['Electrical', 'Other'],
+  'Barber': ['Other'],
+  'Grocery Shop (Society Complex)': ['Other'],
+  'Complex Shop / Retail': ['Other'],
+  'Other Helper / Vendor': ['Other', 'Plumbing', 'Electrical', 'Sanitation', 'Security', 'Parking'],
+};
+
+// Reverse mapping from complaint category to matching vendor professions
+export const CATEGORY_PROFESSION_MAP: Record<string, string[]> = {
+  'Plumbing': ['Plumber', 'Water Tank Supplier', 'Other Helper / Vendor'],
+  'Water Supply': ['Water Tank Supplier', 'Plumber', 'Other Helper / Vendor'],
+  'Electrical': ['Electrician', 'Line Electrician (Society Mains)', 'AC Repairer', 'Electronics Repairer', 'Elevator Technician', 'Other Helper / Vendor'],
+  'Sanitation': ['Sanitation / Cleaner', 'Housekeeping', 'Gardener', 'Other Helper / Vendor'],
+  'Security': ['Security Guard', 'Other Helper / Vendor'],
+  'Parking': ['Security Guard', 'Other Helper / Vendor'],
+  'Noise': ['Security Guard', 'Other Helper / Vendor'],
+  'Other': ['Other Helper / Vendor', 'Plumber', 'Electrician'],
+};
+
 export const VendorAllocationPage: React.FC = () => {
+  const { isCommitteeOrAbove } = useAuth();
   const { showToast } = useToast();
+
+  // Role Protection: Only Secretary and Committee members can access vendor allocation
+  if (!isCommitteeOrAbove) {
+    return <Navigate to="/unauthorized" replace />;
+  }
 
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -79,6 +119,9 @@ export const VendorAllocationPage: React.FC = () => {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isViewTasksModalOpen, setIsViewTasksModalOpen] = useState(false);
   const [activeVendor, setActiveVendor] = useState<Vendor | null>(null);
+
+  // Filter for matching profession tickets only in Modal 1
+  const [onlyMatchingCategory, setOnlyMatchingCategory] = useState(true);
 
   // Form states
   const [formData, setFormData] = useState<CreateVendorPayload>({
@@ -159,6 +202,8 @@ export const VendorAllocationPage: React.FC = () => {
     setActiveVendor(vendor);
     setSelectedComplaintId(null);
     setAssignmentNotes('');
+    setComplaintFilterText('');
+    setOnlyMatchingCategory(true);
     setIsAssignModalOpen(true);
     loadComplaints();
   };
@@ -398,11 +443,24 @@ export const VendorAllocationPage: React.FC = () => {
     };
   };
 
+  const matchingCategories = useMemo(() => {
+    if (!activeVendor) return [];
+    return PROFESSION_CATEGORY_MAP[activeVendor.profession] || [];
+  }, [activeVendor]);
+
   // Filtered public inbox complaints for modal
   const filteredComplaints = useMemo(() => {
-    if (!complaintFilterText.trim()) return complaints;
+    let list = complaints.filter((c) => c.status !== 'resolved' && !c.is_deleted);
+
+    // 1. Smart Category Filter for specific vendor (only show matching profession tickets)
+    if (activeVendor && onlyMatchingCategory && matchingCategories.length > 0) {
+      list = list.filter((c) => c.category && matchingCategories.includes(c.category));
+    }
+
+    // 2. Text Search Filter
+    if (!complaintFilterText.trim()) return list;
     const term = complaintFilterText.toLowerCase();
-    return complaints.filter(
+    return list.filter(
       (c) =>
         c.translated_text?.toLowerCase().includes(term) ||
         c.category?.toLowerCase().includes(term) ||
@@ -410,7 +468,7 @@ export const VendorAllocationPage: React.FC = () => {
         c.block_no?.toLowerCase().includes(term) ||
         String(c.id).includes(term)
     );
-  }, [complaints, complaintFilterText]);
+  }, [complaints, complaintFilterText, activeVendor, onlyMatchingCategory, matchingCategories]);
 
   // Open Mass Modal
   const handleOpenMassModal = async () => {
@@ -479,32 +537,37 @@ export const VendorAllocationPage: React.FC = () => {
     );
   };
 
+  // Partition vendors into recommended specialists for the mass category vs others
+  const { recommendedMassVendors, otherMassVendors } = useMemo(() => {
+    if (massCategoryFilter === 'All') {
+      return { recommendedMassVendors: vendors, otherMassVendors: [] };
+    }
+    const allowed = CATEGORY_PROFESSION_MAP[massCategoryFilter] || [];
+    const recommended: Vendor[] = [];
+    const others: Vendor[] = [];
+    vendors.forEach((v) => {
+      if (allowed.includes(v.profession) || v.profession.toLowerCase().includes(massCategoryFilter.toLowerCase())) {
+        recommended.push(v);
+      } else {
+        others.push(v);
+      }
+    });
+    return { recommendedMassVendors: recommended, otherMassVendors: others };
+  }, [vendors, massCategoryFilter]);
+
   // Pre-select matching vendors when category filter or vendor list changes
   useEffect(() => {
     if (!isMassModalOpen) return;
     if (vendors.length === 0) return;
 
-    let matching = vendors;
-    if (massCategoryFilter !== 'All') {
-      const cat = massCategoryFilter.toLowerCase();
-      matching = vendors.filter((v) => {
-        const prof = v.profession.toLowerCase();
-        if (cat.includes('electr')) return prof.includes('electr');
-        if (cat.includes('plumb')) return prof.includes('plumb');
-        if (cat.includes('water')) return prof.includes('water');
-        if (cat.includes('ac') || cat.includes('air')) return prof.includes('ac') || prof.includes('air');
-        return prof.includes(cat);
-      });
-    }
-
-    if (matching.length > 0) {
-      setSelectedDistributeVendorIds(matching.map((v) => v.id));
-      setSelectedSingleVendorId(matching[0].id);
+    if (recommendedMassVendors.length > 0) {
+      setSelectedDistributeVendorIds(recommendedMassVendors.map((v) => v.id));
+      setSelectedSingleVendorId(recommendedMassVendors[0].id);
     } else {
       setSelectedDistributeVendorIds(vendors.slice(0, 2).map((v) => v.id));
       setSelectedSingleVendorId(vendors[0]?.id || '');
     }
-  }, [massCategoryFilter, isMassModalOpen, vendors]);
+  }, [recommendedMassVendors, isMassModalOpen, vendors]);
 
   // Distribution Split Preview
   const distributionSplitPreview = useMemo(() => {
@@ -661,21 +724,21 @@ export const VendorAllocationPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-5">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-accent/10 text-accent rounded-lg">
+            <div className="p-2 bg-accent/10 text-accent rounded-card">
               <Wrench className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold font-display text-text-primary">
-                Vendor & Helper Allocation
+              <h1 className="text-2xl font-bold font-heading text-text">
+                Vendor Allocation &amp; Task Management
               </h1>
-              <p className="text-sm text-text-muted mt-0.5">
-                Manage society helpers, electricians, plumbers, shops &amp; security. Assign public inbox complaints with local-language notes directly via Resend email.
+              <p className="text-xs sm:text-sm text-muted mt-0.5">
+                Restricted to Secretary &amp; Committee. Manage approved technicians, helpers, and assign public complaints directly via work order email.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <Button
             variant="outline"
             size="sm"
@@ -683,7 +746,7 @@ export const VendorAllocationPage: React.FC = () => {
             disabled={isLoading}
             className="flex items-center gap-1.5"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
 
@@ -691,10 +754,10 @@ export const VendorAllocationPage: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={handleOpenMassModal}
-            className="flex items-center gap-1.5 border-accent/50 text-accent hover:bg-accent/10 font-semibold shadow-xs"
+            className="flex items-center gap-1.5 border-accent text-accent hover:bg-accent/10 font-semibold"
           >
-            <Layers className="w-4 h-4 text-accent" />
-            <span>Mass Allocation &amp; Distribution</span>
+            <Layers className="w-3.5 h-3.5 text-accent" />
+            <span>Mass Allocation</span>
           </Button>
 
           <Button
@@ -720,19 +783,48 @@ export const VendorAllocationPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Resend Integration Notification Badge */}
-      <div className="bg-gradient-to-r from-sapphire/10 via-sapphire/5 to-transparent border-l-4 border-accent p-4 rounded-r-lg flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <Sparkles className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-          <div className="text-xs sm:text-sm text-text-primary">
-            <span className="font-semibold text-accent">Live Resend Email Engine Active:</span>{' '}
-            When you click <span className="font-semibold px-1 py-0.5 bg-accent/15 text-accent rounded">ASSIGN</span> on any vendor, an official work order carrying the ticket details and your written or voice notes is forwarded to their registered email address. Public inbox status updates automatically to <span className="font-medium text-emerald-600 dark:text-emerald-400">In Progress</span>.
+      {/* Clean 3-Metric Summary (Slop-free replacement for big banner) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <div className="p-3.5 rounded-card bg-surface border border-border shadow-soft flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-mono uppercase tracking-wider text-muted font-bold block">
+              Registered Helpers
+            </span>
+            <span className="text-2xl font-bold font-heading text-text mt-0.5 block">
+              {vendors.length}
+            </span>
+          </div>
+          <div className="w-9 h-9 rounded-control bg-surface-2 flex items-center justify-center text-accent">
+            <Store className="w-4 h-4" />
           </div>
         </div>
-        <div className="shrink-0 flex items-center gap-2">
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Resend API Ready
-          </span>
+
+        <div className="p-3.5 rounded-card bg-surface border border-border shadow-soft flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-mono uppercase tracking-wider text-muted font-bold block">
+              Active Work Orders
+            </span>
+            <span className="text-2xl font-bold font-heading text-text mt-0.5 block">
+              {vendors.reduce((sum, v) => sum + (v.tasks_count || 0), 0)}
+            </span>
+          </div>
+          <div className="w-9 h-9 rounded-control bg-surface-2 flex items-center justify-center text-status-inprogress-text">
+            <ClipboardList className="w-4 h-4" />
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-card bg-surface border border-border shadow-soft flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-mono uppercase tracking-wider text-muted font-bold block">
+              Open Society Tickets
+            </span>
+            <span className="text-2xl font-bold font-heading text-text mt-0.5 block">
+              {complaints.filter((c) => c.status !== 'resolved' && !c.is_deleted).length}
+            </span>
+          </div>
+          <div className="w-9 h-9 rounded-control bg-surface-2 flex items-center justify-center text-status-escalated-text">
+            <CheckCircle2 className="w-4 h-4" />
+          </div>
         </div>
       </div>
 
@@ -938,38 +1030,76 @@ export const VendorAllocationPage: React.FC = () => {
           {/* Step 1: Select Complaint from Public Inbox */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-text flex items-center gap-1.5 font-mono">
                 <span className="w-5 h-5 rounded-full bg-accent text-accent-text text-xs flex items-center justify-center font-bold">
                   1
                 </span>
                 Select Public Inbox Complaint Ticket
               </label>
-              <span className="text-xs text-text-muted">
-                {complaints.length} total tickets available
+              <span className="text-xs text-muted font-mono">
+                {filteredComplaints.length} tickets available
               </span>
             </div>
 
+            {/* Smart Category Filter for Vendor Specialty */}
+            {activeVendor && matchingCategories.length > 0 && (
+              <div className="flex items-center justify-between mb-2.5 px-3 py-1.5 rounded-control bg-accent/10 border border-accent/20 text-xs">
+                <span className="text-text font-medium flex items-center gap-1.5 truncate">
+                  <Filter className="w-3.5 h-3.5 text-accent shrink-0" />
+                  <span className="truncate">
+                    {onlyMatchingCategory ? (
+                      <>
+                        Filtered to <strong className="text-accent">{activeVendor.profession}</strong> tickets ({matchingCategories.join(', ')})
+                      </>
+                    ) : (
+                      'Showing tickets from all categories'
+                    )}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setOnlyMatchingCategory((prev) => !prev)}
+                  className="text-xs font-semibold text-accent hover:underline shrink-0 ml-2"
+                >
+                  {onlyMatchingCategory ? 'Show all categories' : `Filter to ${activeVendor.profession} only`}
+                </button>
+              </div>
+            )}
+
             {/* Complaint filter search input */}
             <div className="relative mb-2.5">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input
                 type="text"
                 value={complaintFilterText}
                 onChange={(e) => setComplaintFilterText(e.target.value)}
-                placeholder="Search complaint by flat number, category, or keyword..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent"
+                placeholder={`Search ${onlyMatchingCategory && activeVendor ? activeVendor.profession : ''} complaints by flat, block, or keyword...`}
+                className="w-full pl-8 pr-3 py-1.5 text-xs app-input"
               />
             </div>
 
-            <div className="max-h-56 overflow-y-auto space-y-2 border border-border rounded-lg p-2 bg-surface-secondary/30">
+            <div className="max-h-56 overflow-y-auto space-y-2 border border-border rounded-control p-2 bg-surface-2/30">
               {isLoadingComplaints ? (
-                <div className="p-6 text-center text-xs text-text-muted">
+                <div className="p-6 text-center text-xs text-muted">
                   <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-accent" />
-                  Loading public inbox complaints...
+                  Loading complaints...
                 </div>
               ) : filteredComplaints.length === 0 ? (
-                <div className="p-6 text-center text-xs text-text-muted">
-                  No matching complaints found.
+                <div className="p-6 text-center text-xs text-muted space-y-2">
+                  <p>
+                    {onlyMatchingCategory && activeVendor
+                      ? `No open ${activeVendor.profession} (${matchingCategories.join(', ')}) complaints found.`
+                      : 'No complaints match your search filter.'}
+                  </p>
+                  {onlyMatchingCategory && activeVendor && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setOnlyMatchingCategory(false)}
+                    >
+                      Show all complaints anyway
+                    </Button>
+                  )}
                 </div>
               ) : (
                 filteredComplaints.map((c) => {
@@ -978,9 +1108,9 @@ export const VendorAllocationPage: React.FC = () => {
                     <div
                       key={c.id}
                       onClick={() => setSelectedComplaintId(c.id)}
-                      className={`p-3 rounded-lg border text-xs cursor-pointer transition-all ${
+                      className={`p-3 rounded-control border text-xs cursor-pointer transition-all ${
                         isSelected
-                          ? 'border-accent bg-accent/5 ring-2 ring-accent/20 shadow-sm'
+                          ? 'border-accent bg-accent/5 ring-1 ring-accent'
                           : 'border-border bg-surface hover:border-accent/40'
                       }`}
                     >
@@ -992,11 +1122,11 @@ export const VendorAllocationPage: React.FC = () => {
                             onChange={() => setSelectedComplaintId(c.id)}
                             className="text-accent focus:ring-accent h-3.5 w-3.5"
                           />
-                          <span className="font-bold text-text-primary">
+                          <span className="font-bold text-text font-mono">
                             #{c.id} • {c.category || 'General'}
                           </span>
                           {c.flat_no && (
-                            <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-[11px]">
+                            <span className="px-1.5 py-0.5 rounded bg-surface-2 text-text font-mono text-[11px] border border-border">
                               Flat {c.flat_no}, Block {c.block_no || '-'}
                             </span>
                           )}
@@ -1004,12 +1134,12 @@ export const VendorAllocationPage: React.FC = () => {
 
                         <div className="flex items-center gap-1.5">
                           <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono ${
                               c.status === 'in_progress'
-                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                ? 'bg-status-inprogress-bg text-status-inprogress-text'
                                 : c.status === 'resolved'
-                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                                : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                ? 'bg-status-resolved-bg text-status-resolved-text'
+                                : 'bg-status-new-bg text-status-new-text'
                             }`}
                           >
                             {c.status.replace('_', ' ')}
@@ -1017,7 +1147,7 @@ export const VendorAllocationPage: React.FC = () => {
                         </div>
                       </div>
 
-                      <p className="text-text-secondary mt-1.5 line-clamp-2 pl-5">
+                      <p className="text-muted mt-1.5 line-clamp-2 pl-5">
                         {c.translated_text || 'No description'}
                       </p>
                     </div>
@@ -1027,23 +1157,23 @@ export const VendorAllocationPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Step 2: Written Note / Voice Note Field */}
+          {/* Step 2: Work Order Notes */}
           <div className="space-y-2 border-t border-border pt-4">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-text flex items-center gap-1.5 font-mono">
                 <span className="w-5 h-5 rounded-full bg-accent text-accent-text text-xs flex items-center justify-center font-bold">
                   2
                 </span>
-                Written Note / Voice Note (Local Language Supported)
+                Work Order Notes for Technician
               </label>
 
               {/* Language Selector for Voice Input */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-text-muted">Speech Language:</span>
+              <div className="flex items-center gap-1.5 text-xs text-muted">
+                <span>Language:</span>
                 <select
                   value={speechLanguage}
                   onChange={(e: any) => setSpeechLanguage(e.target.value)}
-                  className="text-xs bg-background border border-border rounded px-1.5 py-0.5 focus:outline-none"
+                  className="text-xs app-input px-1.5 py-0.5"
                 >
                   <option value="hi-IN">Hindi (हिंदी)</option>
                   <option value="en-IN">English (India)</option>
@@ -1058,10 +1188,9 @@ export const VendorAllocationPage: React.FC = () => {
               <textarea
                 value={assignmentNotes}
                 onChange={(e) => setAssignmentNotes(e.target.value)}
-                rows={4}
-                placeholder="Type instructions in your local language (e.g. Hindi, Odia, Bengali, English)...
-Example: 302 नंबर फ्लैट में नल से पानी टपक रहा है। कृपया रिपेयर किट साथ लेकर आएं।"
-                className="w-full text-sm bg-background border border-border rounded-lg p-3 pr-24 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                rows={3}
+                placeholder="Add instructions or notes for the technician (e.g. check 3rd floor valve, bring replacement parts, resident available after 4 PM)..."
+                className="w-full text-sm app-input p-3 pr-24"
               />
 
               {/* Voice Note Button */}
@@ -1069,16 +1198,16 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                 <button
                   type="button"
                   onClick={toggleVoiceRecording}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold transition-all shadow-sm ${
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-control text-xs font-semibold transition-all ${
                     isRecording
-                      ? 'bg-red-600 text-white animate-pulse'
-                      : 'bg-surface hover:bg-surface-secondary text-text-secondary border border-border'
+                      ? 'bg-status-escalated-bg text-status-escalated-text border border-status-escalated-text/30 animate-pulse'
+                      : 'bg-surface hover:bg-surface-2 text-muted border border-border'
                   }`}
                   title="Click to speak your voice note in your local language"
                 >
                   {isRecording ? (
                     <>
-                      <MicOff className="w-3.5 h-3.5" />
+                      <MicOff className="w-3.5 h-3.5 text-current animate-spin" />
                       <span>Recording...</span>
                     </>
                   ) : (
@@ -1091,13 +1220,13 @@ Example: 302 नंबर फ्लैट में नल से पानी �
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-text-muted">
-              <span>This note will be carried in the email notification forwarded to the vendor via Resend.</span>
+            <div className="flex items-center justify-between text-[11px] text-muted">
+              <span>This note will be included in the work order dispatch email sent to {activeVendor?.email} via Resend.</span>
               {assignmentNotes && (
                 <button
                   type="button"
                   onClick={() => setAssignmentNotes('')}
-                  className="text-red-500 hover:underline"
+                  className="text-status-escalated-text hover:underline text-xs"
                 >
                   Clear notes
                 </button>
@@ -1377,21 +1506,19 @@ Example: 302 नंबर फ्लैट में नल से पानी �
       <Modal
         isOpen={isMassModalOpen}
         onClose={() => setIsMassModalOpen(false)}
-        title="⚡ Mass Vendor Allocation & Workload Distribution"
-        subtitle="Search ~100 complaints by problem category, select all tickets, and assign to 1 vendor or distribute workload across multiple specialists."
+        title="Mass Ticket Allocation & Workload Distribution"
+        subtitle="Batch assign open complaints to vendors with automatic load balancing and work order dispatches."
         maxWidth="2xl"
       >
         <div className="space-y-5 text-sm">
-          {/* Case study banner */}
-          <div className="p-3 bg-gradient-to-r from-sapphire/10 to-indigo-50/50 dark:to-indigo-950/20 border border-accent/20 rounded-lg flex items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-accent shrink-0" />
-              <span className="text-text-primary">
-                <span className="font-bold text-accent">Case Study Scenario:</span> Society incident creates mass complaints (e.g. electrical outage / line fault). Filter by category, select all, and balance work order dispatches via Resend email.
-              </span>
+          {/* Summary status pill */}
+          <div className="p-2.5 bg-surface-secondary/40 border border-border rounded-lg flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-text">
+              <Split className="w-4 h-4 text-accent shrink-0" />
+              <span>Select tickets by category and allocate to a dedicated vendor or distribute evenly across multiple specialists.</span>
             </div>
-            <span className="px-2 py-0.5 rounded-full font-semibold text-[11px] bg-accent text-accent-text shrink-0">
-              Open Tickets: {complaints.length}
+            <span className="px-2 py-0.5 rounded-full font-semibold text-[11px] bg-accent/10 text-accent border border-accent/20 shrink-0">
+              Open: {complaints.length}
             </span>
           </div>
 
@@ -1592,14 +1719,27 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                 <select
                   value={selectedSingleVendorId}
                   onChange={(e) => setSelectedSingleVendorId(Number(e.target.value) || '')}
-                  className="w-full text-xs bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                  className="w-full text-xs app-input px-3 py-2"
                 >
                   <option value="">-- Select Vendor --</option>
-                  {vendors.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name} ({v.profession}) — Current Active Tasks: {v.tasks_count}
-                    </option>
-                  ))}
+                  {recommendedMassVendors.length > 0 && (
+                    <optgroup label={massCategoryFilter !== 'All' ? `Recommended Specialists for ${massCategoryFilter}` : 'Registered Helpers'}>
+                      {recommendedMassVendors.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.name} ({v.profession}) — Tasks: {v.tasks_count}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {otherMassVendors.length > 0 && (
+                    <optgroup label="Other Registered Helpers">
+                      {otherMassVendors.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.name} ({v.profession}) — Tasks: {v.tasks_count}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               </div>
             ) : (
@@ -1609,8 +1749,9 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                   Select 2 or More Vendors to Share the Workload:
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
-                  {vendors.map((v) => {
+                  {[...recommendedMassVendors, ...otherMassVendors].map((v) => {
                     const isChecked = selectedDistributeVendorIds.includes(v.id);
+                    const isSpecialist = recommendedMassVendors.some((rv) => rv.id === v.id) && massCategoryFilter !== 'All';
                     return (
                       <label
                         key={v.id}
@@ -1633,7 +1774,14 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                           className="rounded text-accent focus:ring-accent"
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="truncate text-text-primary">{v.name}</div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="truncate text-text-primary">{v.name}</span>
+                            {isSpecialist && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] bg-accent/15 text-accent font-semibold shrink-0">
+                                Specialist
+                              </span>
+                            )}
+                          </div>
                           <div className="text-[10px] text-text-muted truncate">
                             {v.profession} • Tasks: {v.tasks_count}
                           </div>
@@ -1687,21 +1835,21 @@ Example: 302 नंबर फ्लैट में नल से पानी �
             )}
           </div>
 
-          {/* STEP 3: WRITTEN OR VOICE NOTE (LOCAL LANGUAGE) */}
+          {/* STEP 3: WRITTEN OR VOICE NOTE */}
           <div className="space-y-2 pt-3 border-t border-border">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-text flex items-center gap-1.5 font-mono">
                 <span className="w-5 h-5 rounded-full bg-accent text-accent-text flex items-center justify-center text-[11px]">3</span>
-                Work Order Instructions (Written or Voice Note in Local Language)
+                Work Order Dispatch Instructions
               </label>
 
               {/* Language Selector */}
-              <div className="flex items-center gap-1.5 text-xs text-text-muted">
+              <div className="flex items-center gap-1.5 text-xs text-muted">
                 <span>Lang:</span>
                 <select
                   value={speechLanguage}
                   onChange={(e: any) => setSpeechLanguage(e.target.value)}
-                  className="text-xs bg-background border border-border rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-accent"
+                  className="text-xs app-input px-2 py-0.5"
                 >
                   <option value="hi-IN">Hindi (हिंदी)</option>
                   <option value="en-IN">English (Indian)</option>
@@ -1717,17 +1865,17 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                 rows={3}
                 value={massNotes}
                 onChange={(e) => setMassNotes(e.target.value)}
-                placeholder="Enter batch dispatch note in your local language or click microphone to dictate (e.g. 'कृपया सोसाइटी के सभी फ्लैट्स में मेन लाइन और फॉल्ट चेक करें')..."
-                className="w-full text-xs bg-background border border-border rounded-lg p-2.5 pr-12 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                placeholder="Enter work order instructions or special technician notes..."
+                className="w-full text-xs app-input p-2.5 pr-12"
               />
 
               <button
                 type="button"
                 onClick={toggleMassVoiceRecording}
-                className={`absolute right-2.5 bottom-3 p-1.5 rounded-full transition-colors ${
+                className={`absolute right-2.5 bottom-3 p-1.5 rounded-control transition-colors ${
                   isRecordingMass
-                    ? 'bg-rose-500 text-white animate-pulse'
-                    : 'bg-surface-secondary hover:bg-border text-text-secondary'
+                    ? 'bg-status-escalated-bg text-status-escalated-text animate-pulse'
+                    : 'bg-surface-2 hover:bg-border text-muted'
                 }`}
                 title="Dictate voice note in local language"
               >
