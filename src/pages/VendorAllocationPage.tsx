@@ -145,8 +145,8 @@ export const VendorAllocationPage: React.FC = () => {
   const loadComplaints = async () => {
     setIsLoadingComplaints(true);
     try {
-      const res = await getComplaintsApi({ limit: 100 });
-      setComplaints(res.complaints);
+      const res = await getComplaintsApi({ limit: 100, exclude_deleted: true });
+      setComplaints(res.complaints.filter((c) => !c.is_deleted));
     } catch (err) {
       console.error('Could not load public inbox complaints', err);
     } finally {

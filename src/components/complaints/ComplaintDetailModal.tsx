@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   CheckCircle2,
   UserCheck,
+  Trash2,
 } from 'lucide-react';
 import {
   Complaint,
@@ -342,6 +343,14 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                       Masked to Residents
                     </span>
                   )}
+                </div>
+              )}
+
+              {/* Deleted notice if deleted */}
+              {complaint.is_deleted && (
+                <div className="p-3.5 rounded-lg bg-surface-2 border border-border flex items-center gap-2.5 text-xs text-muted italic">
+                  <Trash2 className="w-4 h-4 text-muted shrink-0" />
+                  <span>This complaint was deleted by the author. It is archived in public feed as "Message deleted" and removed from vendor allocation.</span>
                 </div>
               )}
 

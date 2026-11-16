@@ -11,6 +11,7 @@ import {
   ChevronRight,
   PlusCircle,
   Clock,
+  Trash2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -274,9 +275,16 @@ export const PublicInboxPage: React.FC = () => {
                   </div>
 
                   {/* Body Line */}
-                  <p className="text-sm text-text line-clamp-2 leading-relaxed">
-                    {displaySummary}
-                  </p>
+                  {c.is_deleted ? (
+                    <p className="text-sm italic text-muted flex items-center gap-1.5 leading-relaxed bg-surface-2/60 px-3 py-1.5 rounded-lg border border-border/50">
+                      <Trash2 className="w-3.5 h-3.5 text-muted shrink-0" />
+                      <span className="font-medium">Message deleted</span>
+                    </p>
+                  ) : (
+                    <p className="text-sm text-text line-clamp-2 leading-relaxed">
+                      {displaySummary}
+                    </p>
+                  )}
 
                   {/* Meta Sub-line */}
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted pt-1">

@@ -1,5 +1,5 @@
 export type SeverityLevel = 'low' | 'medium' | 'high';
-export type ComplaintStatusType = 'new' | 'in_progress' | 'resolved' | 'escalated';
+export type ComplaintStatusType = 'new' | 'in_progress' | 'resolved' | 'escalated' | 'deleted';
 
 export const COMPLAINT_CATEGORIES = [
   'Plumbing',
@@ -54,6 +54,7 @@ export interface Complaint {
   created_at: string;
   is_owner?: boolean;
   can_edit_status?: boolean;
+  is_deleted?: boolean;
   timeline?: TicketTimelineEvent[];
   linked_reports?: number[];
 }
@@ -65,6 +66,7 @@ export interface ComplaintsFilterParams {
   block?: string;
   limit?: number;
   offset?: number;
+  exclude_deleted?: boolean;
 }
 
 export interface ComplaintsListResponse {
@@ -84,6 +86,7 @@ export interface ServiceRequestTicket {
   description_local?: string;
   preferred_time?: string | null;
   status: string;
+  is_deleted?: boolean;
   created_at: string;
   timeline?: TicketTimelineEvent[];
 }

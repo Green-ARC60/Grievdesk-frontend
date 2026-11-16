@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Mail, Lock, LogIn, Building2, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, LogIn, Building2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
@@ -202,8 +202,8 @@ export const LoginPage: React.FC = () => {
             </Button>
           </form>
 
-          {/* Register Link */}
-          <div className="mt-6 pt-6 border-t border-border text-center">
+          {/* Register Links */}
+          <div className="mt-6 pt-6 border-t border-border text-center space-y-3">
             <p className="text-sm text-muted">
               New to the society?{' '}
               <Link
@@ -213,16 +213,25 @@ export const LoginPage: React.FC = () => {
                 Register your flat
               </Link>
             </p>
+            <p className="text-sm text-muted">
+              Want to create for a new society?{' '}
+              <Link
+                to="/register?mode=new_society"
+                className="font-semibold text-highlight hover:underline transition-colors inline-flex items-center gap-1"
+              >
+                Create society ecosystem &rarr;
+              </Link>
+            </p>
           </div>
         </div>
 
         {/* Informational Scope Callout */}
         <div className="bg-surface-2 border border-border rounded-card p-4 text-xs text-muted flex items-start gap-2.5">
-          <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+          <Building2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-text">Single-Society Portal</p>
+            <p className="font-semibold text-text">Multi-Society Ecosystem Platform</p>
             <p className="mt-0.5 leading-relaxed">
-              No society ID required. Registration is tied directly to your flat &amp; block. First admin registered becomes the Society Secretary.
+              GrievDesk provides completely isolated ecosystems for each residential society. Residents access tickets and dues for their specific society, while new societies can establish their own independent secretary, committee, and resident portal.
             </p>
           </div>
         </div>

@@ -16,6 +16,7 @@ export async function getComplaintsApi(params: ComplaintsFilterParams): Promise<
   if (params.category) query.append('category', params.category);
   if (params.severity) query.append('severity', params.severity);
   if (params.block) query.append('block', params.block);
+  if (params.exclude_deleted) query.append('exclude_deleted', 'true');
   if (params.limit !== undefined) query.append('limit', String(params.limit));
   if (params.offset !== undefined) query.append('offset', String(params.offset));
 
@@ -103,5 +104,21 @@ export async function getStaffUsersApi(): Promise<StaffUser[]> {
   } catch {
     return [];
   }
+}
+
+/**
+ * Delete a complaint (Author or Staff)
+ */
+export async function deleteComplaintApi(id: number): Promise<{ message: string; id: number; is_deleted: boolean }> {
+  const response = await apiClient.delete<{ message: string; id: number; is_deleted: boolean }>(`/complaints/${id}`);
+  return response.data;
+}
+
+/**
+ * Delete a service request (Author or Staff)
+ */
+export async function deleteServiceRequestApi(id: number): Promise<{ message: string; id: number }> {
+  const response = await apiClient.delete<{ message: string; id: number }>(`/service-requests/${id}`);
+  return response.data;
 }
 

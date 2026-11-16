@@ -6,6 +6,7 @@ export interface User {
   id: number;
   name: string;
   phone?: string | null;
+  alt_phone?: string | null;
   gmail: string;
   flat_no: string;
   block_no: string;
@@ -13,6 +14,17 @@ export interface User {
   role: Role;
   approval_status: ApprovalStatus;
   share_phone?: boolean;
+  society_id?: number;
+  society_name?: string;
+  secretary_name?: string;
+}
+
+export interface SocietyItem {
+  id: number;
+  name: string;
+  society_name?: string;
+  secretary_name: string | null;
+  status?: string;
 }
 
 export interface LoginPayload {
@@ -22,13 +34,27 @@ export interface LoginPayload {
 
 export interface RegisterPayload {
   role: RegistrationRole;
+  society_name: string;
+  society_id?: number;
   name: string;
   phone: string;
+  alt_phone?: string;
   flat_no: string;
   block_no: string;
   gmail: string;
   preferred_language: string;
   password: string;
+  is_new_society?: boolean;
+}
+
+export interface SocietyVerificationResponse {
+  exists: boolean;
+  society_id?: number;
+  society_name: string;
+  has_secretary: boolean;
+  secretary_name: string | null;
+  secretary_status?: string | null;
+  society_status?: string;
 }
 
 export interface LoginResponse {

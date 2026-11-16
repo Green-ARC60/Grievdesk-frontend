@@ -4,8 +4,10 @@ import {
   Mail,
   Phone,
   Building,
+  Building2,
   Languages,
   Shield,
+  ShieldCheck,
   Crown,
   Lock,
   Upload,
@@ -23,6 +25,7 @@ import { useAuth } from '../context/AuthContext';
 import { SUPPORTED_LANGUAGES } from '../types/auth';
 import { DirectoryUser } from '../types/users';
 import {
+  getUserProfileApi,
   updateUserProfileApi,
   getDirectoryUsersApi,
   approveUserApi,
@@ -49,6 +52,9 @@ export const ProfilePage: React.FC = () => {
   // ----------------------------------------------------
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
+  const [altPhone, setAltPhone] = useState(user?.alt_phone || '');
+  const [societyName, setSocietyName] = useState(user?.society_name || 'GrievDesk Residency');
+  const [secretaryName, setSecretaryName] = useState(user?.secretary_name || '');
   const [preferredLanguage, setPreferredLanguage] = useState(
     user?.preferred_language || 'en'
   );
@@ -69,12 +75,29 @@ export const ProfilePage: React.FC = () => {
     if (user) {
       setName(user.name);
       setPhone(user.phone || '');
+      setAltPhone(user.alt_phone || '');
+      if (user.society_name) setSocietyName(user.society_name);
+      if (user.secretary_name) setSecretaryName(user.secretary_name);
       setPreferredLanguage(user.preferred_language);
       setSharePhone(user.share_phone ?? false);
       setFlatNo(user.flat_no);
       setBlockNo(user.block_no);
     }
   }, [user]);
+
+  // Fetch fresh profile on mount to guarantee up-to-date society & user info
+  useEffect(() => {
+    getUserProfileApi()
+      .then((fresh) => {
+        if (fresh) {
+          updateUser(fresh);
+          if (fresh.alt_phone !== undefined) setAltPhone(fresh.alt_phone || '');
+          if (fresh.society_name) setSocietyName(fresh.society_name);
+          if (fresh.secretary_name) setSecretaryName(fresh.secretary_name);
+        }
+      })
+      .catch(() => {});
+  }, [updateUser]);
 
   // ----------------------------------------------------
   // Password Change State
@@ -177,11 +200,17 @@ export const ProfilePage: React.FC = () => {
     const payload: any = {
       name: name.trim(),
       phone: phone.trim(),
+      alt_phone: altPhone.trim() || null,
       preferred_language: preferredLanguage,
       share_phone: sharePhone,
       flat_no: flatNo.trim(),
       block_no: blockNo.trim(),
     };
+
+    if (isSecretary) {
+      payload.society_name = societyName.trim();
+      payload.secretary_name = secretaryName.trim();
+    }
 
     if (confirmReapproval) {
       payload.confirm_reapproval = true;
@@ -501,27 +530,27 @@ export const ProfilePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Preferred Language */}
+            {/* Alt Phone Number (Editable by all members) */}
             <div>
-              <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
-                Preferred Language (AI Translations)
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-bold text-text-muted uppercase tracking-wider">
+                  Alt. Phone Number
+                </label>
+                <span className="text-[10px] font-semibold text-accent px-1.5 py-0.5 rounded bg-accent/10">
+                  Editable
+                </span>
+              </div>
               <div className="relative">
-                <Languages className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
-                <select
-                  value={preferredLanguage}
-                  onChange={(e) => setPreferredLanguage(e.target.value)}
-                  className="app-input w-full pl-10 pr-4 h-11 rounded-xl text-sm font-medium"
-                >
-                  {SUPPORTED_LANGUAGES.map((lang) => (
-                    <option key={lang.code} value={lang.code}>
-                      {lang.label} ({lang.nativeLabel})
-                    </option>
-                  ))}
-                </select>
+                <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
+                <Input
+                  value={altPhone}
+                  onChange={(e) => setAltPhone(e.target.value)}
+                  placeholder="e.g. +91 9876543211 (optional)"
+                  className="pl-10 h-11"
+                />
               </div>
               <p className="text-[11px] text-text-muted mt-1">
-                All assistant replies, announcements, and circulars will be localized to this language.
+                Alternate/secondary contact number for your apartment (editable by you).
               </p>
             </div>
 
@@ -552,6 +581,134 @@ export const ProfilePage: React.FC = () => {
                 placeholder="e.g. A"
                 className="h-11"
               />
+            </div>
+
+            {/* Preferred Language */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
+                Preferred Language (AI Translations)
+              </label>
+              <div className="relative">
+                <Languages className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
+                <select
+                  value={preferredLanguage}
+                  onChange={(e) => setPreferredLanguage(e.target.value)}
+                  className="app-input w-full pl-10 pr-4 h-11 rounded-xl text-sm font-medium"
+                >
+                  {SUPPORTED_LANGUAGES.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.label} ({lang.nativeLabel})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-[11px] text-text-muted mt-1">
+                All assistant replies, announcements, and circulars will be localized to this language.
+              </p>
+            </div>
+          </div>
+
+          {/* ---------------------------------------------------- */}
+          {/* Society Information Section */}
+          {/* ---------------------------------------------------- */}
+          <div className="pt-6 border-t border-border">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-accent" />
+                  <span>Society Information</span>
+                </h3>
+                <p className="text-xs text-text-muted mt-0.5">
+                  Official registered residential society identity and leadership.
+                </p>
+              </div>
+              {isSecretary ? (
+                <span className="text-[11px] font-semibold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-2xs">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Secretary Access (Editable)
+                </span>
+              ) : (
+                <span className="text-[11px] font-semibold text-text-muted bg-surface-elevated border border-border px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                  <Lock className="w-3 h-3 text-text-muted" />
+                  Non-editable (Editable by Sec only)
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-surface-2 p-5 rounded-card border border-border">
+              {/* Society Name Field */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold text-text-muted uppercase tracking-wider">
+                    Society Name
+                  </label>
+                  {isSecretary ? (
+                    <span className="text-[10px] font-semibold text-emerald-500 px-1.5 py-0.5 rounded bg-emerald-500/10">
+                      Editable by Sec
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-semibold text-text-muted px-1.5 py-0.5 rounded bg-surface-elevated flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" /> Non-editable
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <Building2 className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
+                  <Input
+                    value={societyName}
+                    onChange={(e) => setSocietyName(e.target.value)}
+                    disabled={!isSecretary}
+                    placeholder="e.g. GrievDesk Residency"
+                    className={`pl-10 h-11 font-medium ${
+                      !isSecretary
+                        ? 'bg-surface-elevated text-text-muted border-border cursor-not-allowed opacity-90'
+                        : 'border-accent/40 focus:border-accent'
+                    }`}
+                  />
+                </div>
+                <p className="text-[11px] text-text-muted mt-1.5">
+                  {isSecretary
+                    ? 'As Secretary, editing this updates the official society name across all member accounts.'
+                    : 'Official registered society name (editable by Secretary only).'}
+                </p>
+              </div>
+
+              {/* Secretary Name Field */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold text-text-muted uppercase tracking-wider">
+                    Secretary Name of the Society
+                  </label>
+                  {isSecretary ? (
+                    <span className="text-[10px] font-semibold text-emerald-500 px-1.5 py-0.5 rounded bg-emerald-500/10">
+                      Editable by Sec
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-semibold text-text-muted px-1.5 py-0.5 rounded bg-surface-elevated flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" /> Non-editable
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <Crown className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-500" />
+                  <Input
+                    value={secretaryName}
+                    onChange={(e) => setSecretaryName(e.target.value)}
+                    disabled={!isSecretary}
+                    placeholder="e.g. Ramesh Patel"
+                    className={`pl-10 h-11 font-medium ${
+                      !isSecretary
+                        ? 'bg-surface-elevated text-text-muted border-border cursor-not-allowed opacity-90'
+                        : 'border-accent/40 focus:border-accent'
+                    }`}
+                  />
+                </div>
+                <p className="text-[11px] text-text-muted mt-1.5">
+                  {isSecretary
+                    ? 'Official Secretary name displayed across all member profiles.'
+                    : 'Current Society Secretary (editable by Secretary only).'}
+                </p>
+              </div>
             </div>
           </div>
 

@@ -10,11 +10,18 @@ import {
   EyeOff,
   Link as LinkIcon,
   ExternalLink,
+  Trash2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/ui/Toast';
 import { Complaint, ServiceRequestTicket } from '../types/complaints';
-import { getMyTicketsApi, getComplaintAudioBlobUrl } from '../api/complaints';
+import {
+  getMyTicketsApi,
+  getComplaintAudioBlobUrl,
+  deleteComplaintApi,
+  deleteServiceRequestApi,
+} from '../api/complaints';
 import { StatusBadge, SeverityBadge } from '../components/complaints/ComplaintStatusBadge';
 import { ComplaintTimeline } from '../components/complaints/ComplaintTimeline';
 import { ComplaintDetailModal } from '../components/complaints/ComplaintDetailModal';
@@ -26,6 +33,7 @@ import { mapBackendError } from '../api/errorMapper';
 
 export const MyTicketsPage: React.FC = () => {
   const { isCommitteeOrAbove } = useAuth();
+  const { showToast } = useToast();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [serviceRequests, setServiceRequests] = useState<ServiceRequestTicket[]>([]);
   const [activeTab, setActiveTab] = useState<'complaints' | 'services'>('complaints');
@@ -59,6 +67,38 @@ export const MyTicketsPage: React.FC = () => {
   useEffect(() => {
     fetchTickets();
   }, [fetchTickets]);
+
+  const handleDeleteComplaint = async (complaintId: number) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete complaint #${complaintId}? It will be removed from your tickets and vendor allocation, and archived as "Message deleted" in the public inbox.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await deleteComplaintApi(complaintId);
+      showToast(`Complaint #${complaintId} deleted successfully.`, 'success');
+      fetchTickets();
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || 'Failed to delete complaint.', 'error');
+    }
+  };
+
+  const handleDeleteServiceRequest = async (requestId: number) => {
+    if (!window.confirm(`Are you sure you want to delete service request #${requestId}?`)) {
+      return;
+    }
+
+    try {
+      await deleteServiceRequestApi(requestId);
+      showToast(`Service Request #${requestId} deleted.`, 'success');
+      fetchTickets();
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || 'Failed to delete service request.', 'error');
+    }
+  };
 
   const toggleTimeline = (key: string) => {
     setExpandedTimelines((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -260,6 +300,16 @@ export const MyTicketsPage: React.FC = () => {
                           <ChevronDown className="w-3.5 h-3.5" />
                         )}
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteComplaint(c.id)}
+                        className="font-medium text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1 transition-colors ml-1"
+                        title="Delete this complaint"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
                     </div>
                   </div>
 
@@ -314,23 +364,35 @@ export const MyTicketsPage: React.FC = () => {
                     {sr.description_local || sr.description}
                   </p>
 
-                  <div className="pt-2 border-t border-border flex justify-between items-center text-xs text-muted">
+                  <div className="pt-2 border-t border-border flex flex-wrap justify-between items-center gap-2 text-xs text-muted">
                     <span>
                       {sr.preferred_time ? `Preferred Time: ${sr.preferred_time}` : 'Standard Queue'}
                     </span>
 
-                    <button
-                      type="button"
-                      onClick={() => toggleTimeline(timelineKey)}
-                      className="font-medium text-accent hover:underline flex items-center gap-1 transition-colors"
-                    >
-                      <span>{isTimelineOpen ? 'Hide Timeline' : 'View Timeline'}</span>
-                      {isTimelineOpen ? (
-                        <ChevronUp className="w-3.5 h-3.5" />
-                      ) : (
-                        <ChevronDown className="w-3.5 h-3.5" />
-                      )}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleTimeline(timelineKey)}
+                        className="font-medium text-accent hover:underline flex items-center gap-1 transition-colors"
+                      >
+                        <span>{isTimelineOpen ? 'Hide Timeline' : 'View Timeline'}</span>
+                        {isTimelineOpen ? (
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        ) : (
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteServiceRequest(sr.id)}
+                        className="font-medium text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1 transition-colors ml-1"
+                        title="Delete this request"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
                   </div>
 
                   {isTimelineOpen && (

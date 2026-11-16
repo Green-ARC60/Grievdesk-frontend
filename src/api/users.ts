@@ -66,3 +66,22 @@ export const transferSecretaryApi = async (
   return response.data;
 };
 
+export const getSocietyInfoApi = async (): Promise<{ society_name: string; secretary_name: string }> => {
+  const response = await apiClient.get<{ society: { society_name: string; secretary_name: string } }>(
+    '/users/society'
+  );
+  return response.data.society;
+};
+
+export const updateSocietyInfoApi = async (data: {
+  society_name?: string;
+  secretary_name?: string;
+}): Promise<{ message: string; society: { society_name: string; secretary_name: string } }> => {
+  const response = await apiClient.put<{
+    message: string;
+    society: { society_name: string; secretary_name: string };
+  }>('/users/society', data);
+  return response.data;
+};
+
+

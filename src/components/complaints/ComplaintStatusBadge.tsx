@@ -30,6 +30,12 @@ export const StatusBadge: React.FC<{ status: ComplaintStatusType | string; size?
       dot: 'bg-status-escalated-text',
       label: 'Escalated',
     },
+    deleted: {
+      bg: 'bg-surface-2',
+      text: 'text-muted italic',
+      dot: 'bg-muted',
+      label: 'Deleted',
+    },
   };
 
   const s = (status || '').toLowerCase().replace(/\s+/g, '_');

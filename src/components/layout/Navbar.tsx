@@ -62,12 +62,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar, onNewChat }) => {
               </button>
             )}
 
-            <Link to="/" className="flex items-center gap-2 group">
+            <Link to="/" className="flex items-center gap-2 group min-w-0">
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-control bg-accent flex items-center justify-center text-accent-text shrink-0">
                 <Building2 className="w-4 h-4 text-current" />
               </div>
-              <span className="font-heading font-bold text-base sm:text-lg text-text tracking-tight group-hover:text-accent transition-colors">
-                GrievDesk
+              <span
+                className="font-heading font-bold text-base sm:text-lg text-text tracking-tight group-hover:text-accent transition-colors truncate max-w-[200px] sm:max-w-sm md:max-w-md lg:max-w-xl"
+                title={user?.society_name ? `GrievDesk - "${user.society_name}"` : 'GrievDesk'}
+              >
+                GrievDesk{user?.society_name ? ` - "${user.society_name}"` : ''}
               </span>
             </Link>
           </div>

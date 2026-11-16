@@ -4,8 +4,30 @@ import {
   LoginResponse,
   RegisterPayload,
   RegisterResponse,
+  SocietyItem,
+  SocietyVerificationResponse,
   User,
 } from '../types/auth';
+
+/**
+ * Fetch list of approved societies for registration selector
+ */
+export async function listSocietiesApi(q?: string): Promise<{ societies: SocietyItem[] }> {
+  const response = await apiClient.get<{ societies: SocietyItem[] }>('/auth/societies', {
+    params: q ? { q } : undefined,
+  });
+  return response.data;
+}
+
+/**
+ * Verify whether a society name exists and whether it already has an assigned Secretary.
+ */
+export async function verifySocietyApi(name: string): Promise<SocietyVerificationResponse> {
+  const response = await apiClient.get<SocietyVerificationResponse>('/auth/verify-society', {
+    params: { name },
+  });
+  return response.data;
+}
 
 /**
  * Submit login credentials to POST /api/auth/login
