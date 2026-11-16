@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useOutletContext } from 'react-router-dom';
 import {
   AlertCircle,
@@ -6,6 +6,8 @@ import {
   BookOpen,
   RotateCcw,
   Check,
+  RefreshCw,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { TypeChips } from '../components/chat/TypeChips';
@@ -23,24 +25,121 @@ import { mapBackendError } from '../api/errorMapper';
 import { LayoutContextType } from '../components/layout/Layout';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 
-const SAMPLE_STARTERS = [
+interface StarterScenario {
+  type: SelectedType;
+  label: string;
+  icon: React.ReactNode;
+  generateText: (block: string, flat: string) => string;
+}
+
+const COMPLAINT_SCENARIOS: StarterScenario[] = [
   {
-    type: 'complaint' as SelectedType,
-    text: 'Water leakage in corridor of Block B on 3rd floor',
-    label: 'Plumbing Complaint',
-    icon: <AlertCircle className="w-3.5 h-3.5 text-status-escalated-text" />,
+    type: 'complaint',
+    label: 'Plumbing Issue',
+    icon: <AlertCircle className="w-3.5 h-3.5 text-blue-500" />,
+    generateText: (block, flat) => `Water pipeline leakage near Flat ${flat}, Block ${block} causing corridor dampness`,
   },
   {
-    type: 'service' as SelectedType,
-    text: 'Need an electrician to inspect master bedroom AC power point',
+    type: 'complaint',
+    label: 'Electrical Problem',
+    icon: <AlertCircle className="w-3.5 h-3.5 text-amber-500" />,
+    generateText: (block) => `Corridor ceiling lights flickering and breaker tripping on 3rd floor in Block ${block}`,
+  },
+  {
+    type: 'complaint',
+    label: 'Elevator Maintenance',
+    icon: <AlertCircle className="w-3.5 h-3.5 text-rose-500" />,
+    generateText: (block) => `Passenger elevator in Block ${block} is vibrating and making grinding sounds during descent`,
+  },
+  {
+    type: 'complaint',
+    label: 'Garbage & Cleanliness',
+    icon: <AlertCircle className="w-3.5 h-3.5 text-emerald-500" />,
+    generateText: (block) => `Waste disposal chute overflowing and uncollected trash bins in Block ${block} stairwell`,
+  },
+  {
+    type: 'complaint',
+    label: 'Parking Obstruction',
+    icon: <AlertCircle className="w-3.5 h-3.5 text-orange-500" />,
+    generateText: (block, flat) => `Unidentified vehicle parked in assigned parking slot for Flat ${flat}, Block ${block}`,
+  },
+  {
+    type: 'complaint',
+    label: 'Noise Disturbance',
+    icon: <AlertCircle className="w-3.5 h-3.5 text-purple-500" />,
+    generateText: (block) => `Excessive loud music and shouting past midnight in Block ${block} upper floors`,
+  },
+];
+
+const SERVICE_SCENARIOS: StarterScenario[] = [
+  {
+    type: 'service',
+    label: 'Plumber Request',
+    icon: <Wrench className="w-3.5 h-3.5 text-blue-500" />,
+    generateText: (block, flat) => `Need a plumber to repair leaking kitchen sink drain and bathroom tap in Flat ${flat}, Block ${block}`,
+  },
+  {
+    type: 'service',
     label: 'Electrician Request',
-    icon: <Wrench className="w-3.5 h-3.5 text-status-inprogress-text" />,
+    icon: <Wrench className="w-3.5 h-3.5 text-amber-500" />,
+    generateText: (block, flat) => `Need an electrician to install new ceiling fan and repair bedroom switchboard in Flat ${flat}, Block ${block}`,
   },
   {
-    type: 'rules' as SelectedType,
-    text: 'What are the rules and timings for clubhouse and gym usage?',
-    label: 'Bylaws Question',
-    icon: <BookOpen className="w-3.5 h-3.5 text-status-new-text" />,
+    type: 'service',
+    label: 'AC Servicing Request',
+    icon: <Wrench className="w-3.5 h-3.5 text-cyan-500" />,
+    generateText: (block, flat) => `Need an AC technician for split AC gas refill and deep coil cleaning in Flat ${flat}, Block ${block}`,
+  },
+  {
+    type: 'service',
+    label: 'Laundry Service',
+    icon: <Wrench className="w-3.5 h-3.5 text-indigo-500" />,
+    generateText: (block, flat) => `Need laundry service pickup for curtains and dry cleaning from Flat ${flat}, Block ${block}`,
+  },
+  {
+    type: 'service',
+    label: 'Vehicle Servicing',
+    icon: <Wrench className="w-3.5 h-3.5 text-emerald-500" />,
+    generateText: (block, flat) => `Need doorstep bike maintenance and battery check in parking slot for Flat ${flat}, Block ${block}`,
+  },
+];
+
+const RULES_SCENARIOS: StarterScenario[] = [
+  {
+    type: 'rules',
+    label: 'Clubhouse & Gym Timings',
+    icon: <BookOpen className="w-3.5 h-3.5 text-sky-500" />,
+    generateText: () => 'What are the operational hours and booking procedure for the society clubhouse and gym?',
+  },
+  {
+    type: 'rules',
+    label: 'Visitor Parking Bylaws',
+    icon: <BookOpen className="w-3.5 h-3.5 text-emerald-500" />,
+    generateText: () => 'What are the society regulations and fee structure for overnight guest and visitor vehicle parking?',
+  },
+  {
+    type: 'rules',
+    label: 'Quiet Hours & Noise Limits',
+    icon: <BookOpen className="w-3.5 h-3.5 text-purple-500" />,
+    generateText: () => 'What are the society rules regarding loud music, parties, and quiet hours after 10 PM?',
+  },
+  {
+    type: 'rules',
+    label: 'Pet Ownership Guidelines',
+    icon: <BookOpen className="w-3.5 h-3.5 text-amber-500" />,
+    generateText: () => 'Are pets allowed in the society and what are the rules regarding leashes in elevators and common areas?',
+  },
+  {
+    type: 'rules',
+    label: 'Flat Renovation Hours',
+    icon: <BookOpen className="w-3.5 h-3.5 text-rose-500" />,
+    generateText: () => 'What are the allowed working hours and guidelines for flat interior renovation and drilling work?',
+  },
+  {
+    type: 'rules',
+    label: 'Waste Segregation Rules',
+    icon: <BookOpen className="w-3.5 h-3.5 text-teal-500" />,
+    generateText: () => 'What are the society rules and guidelines regarding wet and dry waste segregation and garbage disposal?',
   },
 ];
 
@@ -56,6 +155,46 @@ export const HomePage: React.FC = () => {
   const [sessionId, setSessionId] = useState<string>(() => {
     return searchParams.get('session') || crypto.randomUUID();
   });
+
+  // Dynamic starter scenarios rotation
+  const [starterSeed, setStarterSeed] = useState(0);
+
+  const residentBlock = useMemo(() => {
+    if (!user?.block_no) return 'A';
+    return user.block_no.replace(/^block\s+/i, '').trim();
+  }, [user?.block_no]);
+
+  const residentFlat = useMemo(() => {
+    if (!user?.flat_no) return '101';
+    return user.flat_no.trim();
+  }, [user?.flat_no]);
+
+  const activeStarters = useMemo(() => {
+    const complaint = COMPLAINT_SCENARIOS[starterSeed % COMPLAINT_SCENARIOS.length];
+    const service = SERVICE_SCENARIOS[starterSeed % SERVICE_SCENARIOS.length];
+    const rules = RULES_SCENARIOS[starterSeed % RULES_SCENARIOS.length];
+
+    return [
+      {
+        type: complaint.type,
+        label: complaint.label,
+        icon: complaint.icon,
+        text: complaint.generateText(residentBlock, residentFlat),
+      },
+      {
+        type: service.type,
+        label: service.label,
+        icon: service.icon,
+        text: service.generateText(residentBlock, residentFlat),
+      },
+      {
+        type: rules.type,
+        label: rules.label,
+        icon: rules.icon,
+        text: rules.generateText(residentBlock, residentFlat),
+      },
+    ];
+  }, [starterSeed, residentBlock, residentFlat]);
 
   // Selected intent & options
   const [selectedType, setSelectedType] = useState<SelectedType | null>(null);
@@ -393,9 +532,10 @@ export const HomePage: React.FC = () => {
               <h1 className="text-24 sm:text-30 font-heading font-bold text-text tracking-tight">
                 {(() => {
                   const hour = new Date().getHours();
-                  if (hour < 12) return 'Good morning';
-                  if (hour < 17) return 'Good afternoon';
-                  return 'Good evening';
+                  if (hour >= 5 && hour < 12) return 'Good morning';
+                  if (hour >= 12 && hour < 17) return 'Good afternoon';
+                  if (hour >= 17 && hour < 21) return 'Good evening';
+                  return 'Good night';
                 })()}, {user?.name ? user.name.split(' ')[0] : 'Resident'}
               </h1>
               <div className="w-12 h-1 bg-highlight rounded-full mt-2 mb-2.5" aria-hidden="true" />
@@ -464,16 +604,28 @@ export const HomePage: React.FC = () => {
             {/* Quick starters: ONE bordered card with header badge and divided rows */}
             <div className="border-[1.5px] border-border rounded-card divide-y divide-border overflow-hidden bg-surface shadow-soft mb-5">
               <div className="flex items-center justify-between px-3.5 py-2.5 bg-surface-2/60 border-b border-border">
-                <span className="text-xs font-semibold text-text uppercase tracking-wider font-mono">
+                <span className="text-xs font-semibold text-text uppercase tracking-wider font-mono flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-accent" />
                   Quick Starters
                 </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-control bg-tan text-tan-text uppercase tracking-wider font-mono">
-                  Try an example
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setStarterSeed((s) => s + 1)}
+                    className="px-2 py-0.5 rounded text-[11px] text-muted hover:text-text hover:bg-surface border border-border/80 transition-colors flex items-center gap-1 font-mono"
+                    title="Shuffle to see other scenarios"
+                  >
+                    <RefreshCw className="w-3 h-3 text-current" />
+                    <span>Shuffle</span>
+                  </button>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-control bg-tan text-tan-text uppercase tracking-wider font-mono">
+                    Try an example
+                  </span>
+                </div>
               </div>
-              {SAMPLE_STARTERS.map((starter, i) => (
+              {activeStarters.map((starter, i) => (
                 <button
-                  key={i}
+                  key={`${starter.type}-${starter.label}-${i}`}
                   type="button"
                   onClick={() => {
                     setSelectedType(starter.type);
