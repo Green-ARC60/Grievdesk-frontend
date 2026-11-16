@@ -1249,7 +1249,7 @@ export const AnnouncementsDuesPage: React.FC = () => {
                             disabled={isCreatingDue || !newDueFlat || !newDueAmount}
                             onClick={() => handleCreateDueSubmit(true)}
                             leftIcon={<Send className="w-3.5 h-3.5" />}
-                            className="bg-sapphire hover:bg-sapphire-dark text-white font-semibold"
+                            className="bg-accent hover:bg-accent-hover text-accent-text font-semibold"
                           >
                             {isCreatingDue ? 'Processing...' : 'Draft & Send Email'}
                           </Button>
@@ -1383,7 +1383,7 @@ export const AnnouncementsDuesPage: React.FC = () => {
                             disabled={isSavingDueEdit}
                             onClick={() => handleSaveDueEdit(true)}
                             leftIcon={<Send className="w-3.5 h-3.5" />}
-                            className="bg-sapphire hover:bg-sapphire-dark text-white font-semibold"
+                            className="bg-accent hover:bg-accent-hover text-accent-text font-semibold"
                           >
                             {isSavingDueEdit ? 'Saving...' : 'Save & Send Email Notice'}
                           </Button>
@@ -1458,7 +1458,7 @@ export const AnnouncementsDuesPage: React.FC = () => {
                           size="sm"
                           isLoading={isSendingDueEmail}
                           leftIcon={<Send className="w-3.5 h-3.5" />}
-                          className="bg-sapphire hover:bg-sapphire-dark text-white font-semibold"
+                          className="bg-accent hover:bg-accent-hover text-accent-text font-semibold"
                         >
                           Send Bill Email (Resend)
                         </Button>

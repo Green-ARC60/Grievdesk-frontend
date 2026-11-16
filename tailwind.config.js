@@ -32,6 +32,11 @@ export default {
           active: 'var(--color-accent-active)',
           text: 'var(--color-accent-text)',
         },
+        sapphire: {
+          DEFAULT: 'var(--color-accent)',
+          dark: 'var(--color-accent-hover)',
+          light: 'var(--color-accent)',
+        },
         highlight: {
           DEFAULT: 'var(--color-highlight)',
           text: 'var(--color-highlight-text)',

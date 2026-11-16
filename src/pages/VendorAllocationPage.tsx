@@ -661,7 +661,7 @@ export const VendorAllocationPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-5">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-sapphire/10 text-sapphire rounded-lg">
+            <div className="p-2 bg-accent/10 text-accent rounded-lg">
               <Wrench className="w-6 h-6" />
             </div>
             <div>
@@ -691,9 +691,9 @@ export const VendorAllocationPage: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={handleOpenMassModal}
-            className="flex items-center gap-1.5 border-sapphire/50 text-sapphire hover:bg-sapphire/10 font-semibold shadow-xs"
+            className="flex items-center gap-1.5 border-accent/50 text-accent hover:bg-accent/10 font-semibold shadow-xs"
           >
-            <Layers className="w-4 h-4 text-sapphire" />
+            <Layers className="w-4 h-4 text-accent" />
             <span>Mass Allocation &amp; Distribution</span>
           </Button>
 
@@ -721,12 +721,12 @@ export const VendorAllocationPage: React.FC = () => {
       </div>
 
       {/* Resend Integration Notification Badge */}
-      <div className="bg-gradient-to-r from-sapphire/10 via-sapphire/5 to-transparent border-l-4 border-sapphire p-4 rounded-r-lg flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="bg-gradient-to-r from-sapphire/10 via-sapphire/5 to-transparent border-l-4 border-accent p-4 rounded-r-lg flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="flex items-start gap-3">
-          <Sparkles className="w-5 h-5 text-sapphire shrink-0 mt-0.5" />
+          <Sparkles className="w-5 h-5 text-accent shrink-0 mt-0.5" />
           <div className="text-xs sm:text-sm text-text-primary">
-            <span className="font-semibold text-sapphire">Live Resend Email Engine Active:</span>{' '}
-            When you click <span className="font-semibold px-1 py-0.5 bg-sapphire/15 text-sapphire rounded">ASSIGN</span> on any vendor, an official work order carrying the ticket details and your written or voice notes is forwarded to their registered email address. Public inbox status updates automatically to <span className="font-medium text-emerald-600 dark:text-emerald-400">In Progress</span>.
+            <span className="font-semibold text-accent">Live Resend Email Engine Active:</span>{' '}
+            When you click <span className="font-semibold px-1 py-0.5 bg-accent/15 text-accent rounded">ASSIGN</span> on any vendor, an official work order carrying the ticket details and your written or voice notes is forwarded to their registered email address. Public inbox status updates automatically to <span className="font-medium text-emerald-600 dark:text-emerald-400">In Progress</span>.
           </div>
         </div>
         <div className="shrink-0 flex items-center gap-2">
@@ -752,7 +752,7 @@ export const VendorAllocationPage: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search helper by name, profession, phone, email, or shop address..."
-              className="w-full pl-9 pr-4 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-sapphire/20 focus:border-sapphire"
+              className="w-full pl-9 pr-4 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
             />
           </div>
         </div>
@@ -767,7 +767,7 @@ export const VendorAllocationPage: React.FC = () => {
                 onClick={() => setSelectedProfession(prof)}
                 className={`px-3 py-1.5 rounded-full font-medium whitespace-nowrap transition-colors border ${
                   isSelected
-                    ? 'bg-sapphire text-white border-sapphire shadow-sm'
+                    ? 'bg-accent text-accent-text border-accent shadow-sm'
                     : 'bg-background hover:bg-surface-secondary text-text-secondary border-border'
                 }`}
               >
@@ -782,7 +782,7 @@ export const VendorAllocationPage: React.FC = () => {
       <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
         {isLoading ? (
           <div className="p-12 text-center text-text-muted">
-            <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-sapphire" />
+            <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-accent" />
             <p className="text-sm">Loading society vendors and helpers...</p>
           </div>
         ) : vendors.length === 0 ? (
@@ -821,7 +821,7 @@ export const VendorAllocationPage: React.FC = () => {
                       {/* Name & Notes */}
                       <td className="py-3.5 px-4">
                         <div>
-                          <div className="font-semibold text-text-primary group-hover:text-sapphire transition-colors flex items-center gap-1.5">
+                          <div className="font-semibold text-text-primary group-hover:text-accent transition-colors flex items-center gap-1.5">
                             {vendor.name}
                           </div>
                           {vendor.notes && (
@@ -847,14 +847,14 @@ export const VendorAllocationPage: React.FC = () => {
                         <div className="space-y-1">
                           <a
                             href={`tel:${vendor.phone}`}
-                            className="flex items-center gap-1.5 text-xs text-text-primary hover:text-sapphire transition-colors"
+                            className="flex items-center gap-1.5 text-xs text-text-primary hover:text-accent transition-colors"
                           >
                             <Phone className="w-3.5 h-3.5 text-text-muted" />
                             {vendor.phone}
                           </a>
                           <a
                             href={`mailto:${vendor.email}`}
-                            className="flex items-center gap-1.5 text-xs text-text-muted hover:text-sapphire transition-colors"
+                            className="flex items-center gap-1.5 text-xs text-text-muted hover:text-accent transition-colors"
                           >
                             <Mail className="w-3.5 h-3.5 text-text-muted" />
                             {vendor.email}
@@ -874,7 +874,7 @@ export const VendorAllocationPage: React.FC = () => {
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
                         <button
                           onClick={() => handleOpenViewTasksModal(vendor)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-surface-secondary hover:bg-sapphire/10 text-text-secondary hover:text-sapphire border border-border transition-colors"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-surface-secondary hover:bg-accent/10 text-text-secondary hover:text-accent border border-border transition-colors"
                           title="Click to view assigned tasks history"
                         >
                           <ClipboardList className="w-3.5 h-3.5" />
@@ -890,7 +890,7 @@ export const VendorAllocationPage: React.FC = () => {
                             variant="primary"
                             size="sm"
                             onClick={() => handleOpenAssignModal(vendor)}
-                            className="bg-sapphire hover:bg-sapphire-dark text-white font-semibold text-xs px-3 py-1.5 shadow-sm flex items-center gap-1.5"
+                            className="bg-accent hover:bg-accent-hover text-accent-text font-semibold text-xs px-3 py-1.5 shadow-sm flex items-center gap-1.5"
                           >
                             <Send className="w-3.5 h-3.5" />
                             ASSIGN
@@ -939,7 +939,7 @@ export const VendorAllocationPage: React.FC = () => {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-full bg-sapphire text-white text-xs flex items-center justify-center font-bold">
+                <span className="w-5 h-5 rounded-full bg-accent text-accent-text text-xs flex items-center justify-center font-bold">
                   1
                 </span>
                 Select Public Inbox Complaint Ticket
@@ -957,14 +957,14 @@ export const VendorAllocationPage: React.FC = () => {
                 value={complaintFilterText}
                 onChange={(e) => setComplaintFilterText(e.target.value)}
                 placeholder="Search complaint by flat number, category, or keyword..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-sapphire"
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent"
               />
             </div>
 
             <div className="max-h-56 overflow-y-auto space-y-2 border border-border rounded-lg p-2 bg-surface-secondary/30">
               {isLoadingComplaints ? (
                 <div className="p-6 text-center text-xs text-text-muted">
-                  <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-sapphire" />
+                  <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-accent" />
                   Loading public inbox complaints...
                 </div>
               ) : filteredComplaints.length === 0 ? (
@@ -980,8 +980,8 @@ export const VendorAllocationPage: React.FC = () => {
                       onClick={() => setSelectedComplaintId(c.id)}
                       className={`p-3 rounded-lg border text-xs cursor-pointer transition-all ${
                         isSelected
-                          ? 'border-sapphire bg-sapphire/5 ring-2 ring-sapphire/20 shadow-sm'
-                          : 'border-border bg-surface hover:border-sapphire/40'
+                          ? 'border-accent bg-accent/5 ring-2 ring-accent/20 shadow-sm'
+                          : 'border-border bg-surface hover:border-accent/40'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -990,7 +990,7 @@ export const VendorAllocationPage: React.FC = () => {
                             type="radio"
                             checked={isSelected}
                             onChange={() => setSelectedComplaintId(c.id)}
-                            className="text-sapphire focus:ring-sapphire h-3.5 w-3.5"
+                            className="text-accent focus:ring-accent h-3.5 w-3.5"
                           />
                           <span className="font-bold text-text-primary">
                             #{c.id} • {c.category || 'General'}
@@ -1031,7 +1031,7 @@ export const VendorAllocationPage: React.FC = () => {
           <div className="space-y-2 border-t border-border pt-4">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-full bg-sapphire text-white text-xs flex items-center justify-center font-bold">
+                <span className="w-5 h-5 rounded-full bg-accent text-accent-text text-xs flex items-center justify-center font-bold">
                   2
                 </span>
                 Written Note / Voice Note (Local Language Supported)
@@ -1061,7 +1061,7 @@ export const VendorAllocationPage: React.FC = () => {
                 rows={4}
                 placeholder="Type instructions in your local language (e.g. Hindi, Odia, Bengali, English)...
 Example: 302 नंबर फ्लैट में नल से पानी टपक रहा है। कृपया रिपेयर किट साथ लेकर आएं।"
-                className="w-full text-sm bg-background border border-border rounded-lg p-3 pr-24 focus:outline-none focus:ring-2 focus:ring-sapphire/20 focus:border-sapphire"
+                className="w-full text-sm bg-background border border-border rounded-lg p-3 pr-24 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
               />
 
               {/* Voice Note Button */}
@@ -1083,7 +1083,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                     </>
                   ) : (
                     <>
-                      <Mic className="w-3.5 h-3.5 text-sapphire" />
+                      <Mic className="w-3.5 h-3.5 text-accent" />
                       <span>Voice Note</span>
                     </>
                   )}
@@ -1122,7 +1122,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
               size="sm"
               disabled={!selectedComplaintId || isSubmitting}
               onClick={handleAssignTask}
-              className="bg-sapphire hover:bg-sapphire-dark text-white flex items-center gap-2"
+              className="bg-accent hover:bg-accent-hover text-accent-text flex items-center gap-2"
             >
               {isSubmitting ? (
                 <>
@@ -1165,7 +1165,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g. Ramesh Sharma (Plumber) or Daily Needs Supermart"
-              className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sapphire/20 focus:border-sapphire"
+              className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
             />
           </div>
 
@@ -1178,7 +1178,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
               <select
                 value={formData.profession}
                 onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
-                className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sapphire/20 focus:border-sapphire"
+                className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
               >
                 {STANDARD_PROFESSIONS.filter((p) => p !== 'All').map((prof) => (
                   <option key={prof} value={prof}>
@@ -1200,7 +1200,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                   value={customProfession}
                   onChange={(e) => setCustomProfession(e.target.value)}
                   placeholder="e.g. Carpenter, Painter, Pest Control"
-                  className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sapphire/20 focus:border-sapphire"
+                  className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                 />
               </div>
             )}
@@ -1216,7 +1216,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="e.g. +91 98765 43210"
-                className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sapphire/20 focus:border-sapphire"
+                className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
               />
             </div>
           </div>
@@ -1232,7 +1232,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="e.g. ramesh.plumber@example.com"
-              className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sapphire/20 focus:border-sapphire"
+              className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
             />
           </div>
 
@@ -1247,7 +1247,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               placeholder="e.g. Shop #3, Society Commercial Complex, or Gate 1 Guard Cabin"
-              className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sapphire/20 focus:border-sapphire"
+              className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
             />
           </div>
 
@@ -1261,7 +1261,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
               value={formData.notes || ''}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="e.g. Available 8:00 AM - 8:00 PM. Emergency line fixes 24/7."
-              className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sapphire/20 focus:border-sapphire"
+              className="w-full text-sm bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
             />
           </div>
 
@@ -1284,7 +1284,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
               variant="primary"
               size="sm"
               disabled={isSubmitting}
-              className="bg-sapphire hover:bg-sapphire-dark text-white"
+              className="bg-accent hover:bg-accent-hover text-accent-text"
             >
               {isSubmitting
                 ? 'Saving...'
@@ -1309,7 +1309,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
         <div className="space-y-4">
           {isLoadingVendorTasks ? (
             <div className="p-8 text-center text-sm text-text-muted">
-              <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-sapphire" />
+              <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-accent" />
               Loading task assignment records...
             </div>
           ) : vendorDetailTasks.length === 0 ? (
@@ -1383,14 +1383,14 @@ Example: 302 नंबर फ्लैट में नल से पानी �
       >
         <div className="space-y-5 text-sm">
           {/* Case study banner */}
-          <div className="p-3 bg-gradient-to-r from-sapphire/10 to-indigo-50/50 dark:to-indigo-950/20 border border-sapphire/20 rounded-lg flex items-center justify-between gap-3 text-xs">
+          <div className="p-3 bg-gradient-to-r from-sapphire/10 to-indigo-50/50 dark:to-indigo-950/20 border border-accent/20 rounded-lg flex items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-sapphire shrink-0" />
+              <Sparkles className="w-4 h-4 text-accent shrink-0" />
               <span className="text-text-primary">
-                <span className="font-bold text-sapphire">Case Study Scenario:</span> Society incident creates mass complaints (e.g. electrical outage / line fault). Filter by category, select all, and balance work order dispatches via Resend email.
+                <span className="font-bold text-accent">Case Study Scenario:</span> Society incident creates mass complaints (e.g. electrical outage / line fault). Filter by category, select all, and balance work order dispatches via Resend email.
               </span>
             </div>
-            <span className="px-2 py-0.5 rounded-full font-semibold text-[11px] bg-sapphire text-white shrink-0">
+            <span className="px-2 py-0.5 rounded-full font-semibold text-[11px] bg-accent text-accent-text shrink-0">
               Open Tickets: {complaints.length}
             </span>
           </div>
@@ -1399,10 +1399,10 @@ Example: 302 नंबर फ्लैट में नल से पानी �
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-full bg-sapphire text-white flex items-center justify-center text-[11px]">1</span>
+                <span className="w-5 h-5 rounded-full bg-accent text-accent-text flex items-center justify-center text-[11px]">1</span>
                 Filter Complaints by Category &amp; Select All
               </label>
-              <span className="text-xs font-medium text-sapphire">
+              <span className="text-xs font-medium text-accent">
                 {selectedMassComplaintIds.length} of {filteredMassComplaints.length} tickets selected
               </span>
             </div>
@@ -1419,7 +1419,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                     onClick={() => setMassCategoryFilter(cat)}
                     className={`px-3 py-1 rounded-full font-medium whitespace-nowrap transition-colors border flex items-center gap-1.5 ${
                       isSelected
-                        ? 'bg-sapphire text-white border-sapphire shadow-xs'
+                        ? 'bg-accent text-accent-text border-accent shadow-xs'
                         : 'bg-surface-secondary/40 hover:bg-surface-secondary text-text-secondary border-border'
                     }`}
                   >
@@ -1447,7 +1447,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                   value={massSearchTerm}
                   onChange={(e) => setMassSearchTerm(e.target.value)}
                   placeholder="Filter by flat, block, ticket # or issue description..."
-                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-sapphire/20 focus:border-sapphire"
+                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                 />
               </div>
 
@@ -1462,7 +1462,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                 {filteredMassComplaints.length > 0 &&
                 filteredMassComplaints.every((c) => selectedMassComplaintIds.includes(c.id)) ? (
                   <>
-                    <CheckSquare className="w-3.5 h-3.5 text-sapphire" />
+                    <CheckSquare className="w-3.5 h-3.5 text-accent" />
                     <span>Deselect All Visible</span>
                   </>
                 ) : (
@@ -1478,7 +1478,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
             <div className="max-h-52 overflow-y-auto border border-border rounded-lg divide-y divide-border bg-background/50 pr-1">
               {isLoadingComplaints ? (
                 <div className="p-6 text-center text-xs text-text-muted">
-                  <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-sapphire" />
+                  <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-accent" />
                   Loading complaints...
                 </div>
               ) : filteredMassComplaints.length === 0 ? (
@@ -1492,14 +1492,14 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                     <label
                       key={c.id}
                       className={`flex items-start gap-3 p-2.5 cursor-pointer text-xs transition-colors hover:bg-surface-secondary/50 ${
-                        isChecked ? 'bg-sapphire/5 dark:bg-sapphire/15' : ''
+                        isChecked ? 'bg-accent/5 dark:bg-accent/15' : ''
                       }`}
                     >
                       <input
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => handleToggleSingleComplaint(c.id)}
-                        className="mt-0.5 rounded text-sapphire focus:ring-sapphire"
+                        className="mt-0.5 rounded text-accent focus:ring-accent"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
@@ -1540,7 +1540,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
           {/* STEP 2: ALLOCATION STRATEGY & VENDOR SELECTION */}
           <div className="space-y-3 pt-3 border-t border-border">
             <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-sapphire text-white flex items-center justify-center text-[11px]">2</span>
+              <span className="w-5 h-5 rounded-full bg-accent text-accent-text flex items-center justify-center text-[11px]">2</span>
               Allocation Strategy &amp; Vendor Selection
             </label>
 
@@ -1551,12 +1551,12 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                 onClick={() => setMassAllocationMode('single')}
                 className={`p-3 rounded-lg border text-left transition-all ${
                   massAllocationMode === 'single'
-                    ? 'border-sapphire bg-sapphire/5 text-sapphire ring-1 ring-sapphire shadow-xs'
+                    ? 'border-accent bg-accent/5 text-accent ring-1 ring-accent shadow-xs'
                     : 'border-border bg-surface hover:bg-surface-secondary/40 text-text-secondary'
                 }`}
               >
                 <div className="flex items-center gap-2 font-bold text-xs mb-1">
-                  <Users2 className="w-4 h-4 text-sapphire" />
+                  <Users2 className="w-4 h-4 text-accent" />
                   <span>Single Vendor Assignment</span>
                 </div>
                 <p className="text-[11px] text-text-muted leading-relaxed">
@@ -1569,12 +1569,12 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                 onClick={() => setMassAllocationMode('distribute')}
                 className={`p-3 rounded-lg border text-left transition-all ${
                   massAllocationMode === 'distribute'
-                    ? 'border-sapphire bg-sapphire/5 text-sapphire ring-1 ring-sapphire shadow-xs'
+                    ? 'border-accent bg-accent/5 text-accent ring-1 ring-accent shadow-xs'
                     : 'border-border bg-surface hover:bg-surface-secondary/40 text-text-secondary'
                 }`}
               >
                 <div className="flex items-center gap-2 font-bold text-xs mb-1">
-                  <Split className="w-4 h-4 text-sapphire" />
+                  <Split className="w-4 h-4 text-accent" />
                   <span>Workload Distribution (Split)</span>
                 </div>
                 <p className="text-[11px] text-text-muted leading-relaxed">
@@ -1592,7 +1592,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                 <select
                   value={selectedSingleVendorId}
                   onChange={(e) => setSelectedSingleVendorId(Number(e.target.value) || '')}
-                  className="w-full text-xs bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sapphire/20 focus:border-sapphire"
+                  className="w-full text-xs bg-background border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                 >
                   <option value="">-- Select Vendor --</option>
                   {vendors.map((v) => (
@@ -1616,7 +1616,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                         key={v.id}
                         className={`flex items-center gap-2 p-2 rounded-lg border text-xs cursor-pointer transition-colors ${
                           isChecked
-                            ? 'border-sapphire/60 bg-sapphire/5 font-semibold text-text-primary'
+                            ? 'border-accent/60 bg-accent/5 font-semibold text-text-primary'
                             : 'border-border bg-surface text-text-secondary hover:bg-surface-secondary/30'
                         }`}
                       >
@@ -1630,7 +1630,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                                 : [...prev, v.id]
                             );
                           }}
-                          className="rounded text-sapphire focus:ring-sapphire"
+                          className="rounded text-accent focus:ring-accent"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="truncate text-text-primary">{v.name}</div>
@@ -1648,10 +1648,10 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                   <div className="p-3 rounded-lg bg-surface-secondary/40 border border-border space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-text-primary flex items-center gap-1.5">
-                        <Split className="w-3.5 h-3.5 text-sapphire" />
+                        <Split className="w-3.5 h-3.5 text-accent" />
                         Live Workload Split Preview ({selectedMassComplaintIds.length} tickets):
                       </span>
-                      <span className="text-[11px] font-semibold text-sapphire">
+                      <span className="text-[11px] font-semibold text-accent">
                         {distributionSplitPreview.length} Vendors Participating
                       </span>
                     </div>
@@ -1671,7 +1671,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                             </div>
                           </div>
                           <div className="text-right">
-                            <span className="font-bold text-sapphire text-xs">
+                            <span className="font-bold text-accent text-xs">
                               +{item.count} tickets
                             </span>
                             <div className="text-[10px] text-text-muted">
@@ -1691,7 +1691,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
           <div className="space-y-2 pt-3 border-t border-border">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-full bg-sapphire text-white flex items-center justify-center text-[11px]">3</span>
+                <span className="w-5 h-5 rounded-full bg-accent text-accent-text flex items-center justify-center text-[11px]">3</span>
                 Work Order Instructions (Written or Voice Note in Local Language)
               </label>
 
@@ -1701,7 +1701,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                 <select
                   value={speechLanguage}
                   onChange={(e: any) => setSpeechLanguage(e.target.value)}
-                  className="text-xs bg-background border border-border rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-sapphire"
+                  className="text-xs bg-background border border-border rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-accent"
                 >
                   <option value="hi-IN">Hindi (हिंदी)</option>
                   <option value="en-IN">English (Indian)</option>
@@ -1718,7 +1718,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                 value={massNotes}
                 onChange={(e) => setMassNotes(e.target.value)}
                 placeholder="Enter batch dispatch note in your local language or click microphone to dictate (e.g. 'कृपया सोसाइटी के सभी फ्लैट्स में मेन लाइन और फॉल्ट चेक करें')..."
-                className="w-full text-xs bg-background border border-border rounded-lg p-2.5 pr-12 focus:outline-none focus:ring-2 focus:ring-sapphire/20 focus:border-sapphire"
+                className="w-full text-xs bg-background border border-border rounded-lg p-2.5 pr-12 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
               />
 
               <button
@@ -1766,7 +1766,7 @@ Example: 302 नंबर फ्लैट में नल से पानी �
                 size="sm"
                 disabled={isSubmittingMass || selectedMassComplaintIds.length === 0}
                 onClick={handleExecuteMassAssign}
-                className="bg-sapphire hover:bg-sapphire-dark text-white flex items-center gap-1.5"
+                className="bg-accent hover:bg-accent-hover text-accent-text flex items-center gap-1.5"
               >
                 {isSubmittingMass ? (
                   <>

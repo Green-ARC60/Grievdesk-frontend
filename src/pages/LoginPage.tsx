@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Mail, Lock, LogIn, Building2 } from 'lucide-react';
+import { Mail, Lock, LogIn, Building2, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Alert } from '../components/ui/Alert';
 import { ThemeToggle } from '../components/ui/ThemeToggle';
 import { mapBackendError } from '../api/errorMapper';
+import { DEMO_ACCOUNTS } from '../config/demoAccounts';
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuth();
@@ -201,6 +202,48 @@ export const LoginPage: React.FC = () => {
               Sign In
             </Button>
           </form>
+
+          {/* 1-Click Fast Demo Login for Mentor / Showcase Reviews */}
+          <div className="mt-6 pt-5 border-t border-border">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-muted font-bold flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5 text-highlight-ink" />
+                1-Click Demo Logins
+              </span>
+              <span className="text-[10px] text-muted font-mono">Instant Showcase</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {DEMO_ACCOUNTS.map((acc) => (
+                <button
+                  key={acc.gmail}
+                  type="button"
+                  disabled={isLoading}
+                  onClick={async () => {
+                    setGmail(acc.gmail);
+                    setPassword(acc.password);
+                    setIsLoading(true);
+                    setGeneralError(null);
+                    setWarningMessage(null);
+                    try {
+                      await login({ gmail: acc.gmail, password: acc.password });
+                      navigate('/', { replace: true });
+                    } catch (err) {
+                      setGeneralError(mapBackendError(err));
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  className="text-left p-2 rounded-control bg-surface-2 hover:bg-surface border border-border hover:border-accent/50 transition-all text-xs group focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  <span className="font-semibold text-text group-hover:text-accent block truncate">
+                    {acc.role === 'secretary' ? '🔑 ' : acc.role === 'committee' ? '🛡️ ' : '👤 '}
+                    {acc.label}
+                  </span>
+                  <span className="text-[10px] text-muted block truncate">{acc.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Register Links */}
           <div className="mt-6 pt-6 border-t border-border text-center space-y-3">
