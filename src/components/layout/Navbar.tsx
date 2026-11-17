@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Building2, Menu, PlusCircle, Search, Zap, ChevronDown, Check } from 'lucide-react';
+import { Building2, Menu, PlusCircle, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/Button';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { NotificationBell } from '../notifications/NotificationBell';
 import { GlobalSearchModal } from '../search/GlobalSearchModal';
-import { DEMO_ACCOUNTS } from '../../config/demoAccounts';
 
 interface NavbarProps {
   onOpenSidebar?: () => void;
@@ -14,13 +13,11 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar, onNewChat }) => {
-  const { user, isAuthenticated, login } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isSwitchOpen, setIsSwitchOpen] = useState(false);
-  const [isSwitching, setIsSwitching] = useState(false);
 
   // Global Ctrl+K / Cmd+K shortcut
   useEffect(() => {
@@ -128,74 +125,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSidebar, onNewChat }) => {
                     <span className="text-muted/60">&bull;</span>
                     <span>{getRoleLabel(user.role)}</span>
                   </span>
-                </div>
-
-                {/* 1-Click Role Switcher for Mentor Demo */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    disabled={isSwitching}
-                    onClick={() => setIsSwitchOpen((prev) => !prev)}
-                    className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-control bg-surface-2 hover:bg-surface border-[1.5px] border-border text-xs font-semibold text-text shadow-soft transition-colors duration-180 focus:outline-none focus:ring-2 focus:ring-accent/40"
-                    title="1-Click Demo Switcher: Swap between Secretary & Resident without logging out"
-                  >
-                    <Zap className={`w-3.5 h-3.5 text-highlight-ink shrink-0 ${isSwitching ? 'animate-spin' : ''}`} />
-                    <span className="hidden md:inline text-muted font-normal">Switch</span>
-                    <span className="font-bold text-accent capitalize">{user.role}</span>
-                    <ChevronDown className="w-3 h-3 text-muted" />
-                  </button>
-
-                  {isSwitchOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setIsSwitchOpen(false)}
-                      />
-                      <div className="absolute right-0 mt-2 w-56 rounded-card bg-surface border-[1.5px] border-border shadow-soft z-50 p-1.5 divide-y divide-border animate-slideDown">
-                        <div className="px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wider text-muted font-bold flex items-center justify-between">
-                          <span>⚡ Quick Role Swap</span>
-                          <span className="text-[9px] text-accent">Mentor Demo</span>
-                        </div>
-                        <div className="py-1 space-y-0.5">
-                          {DEMO_ACCOUNTS.map((acc) => {
-                            const isCurrent = user.gmail.toLowerCase() === acc.gmail.toLowerCase();
-                            return (
-                              <button
-                                key={acc.gmail}
-                                type="button"
-                                disabled={isCurrent || isSwitching}
-                                onClick={async () => {
-                                  setIsSwitchOpen(false);
-                                  setIsSwitching(true);
-                                  try {
-                                    await login({ gmail: acc.gmail, password: acc.password });
-                                  } catch (e) {
-                                    console.error('Quick switch failed', e);
-                                  } finally {
-                                    setIsSwitching(false);
-                                  }
-                                }}
-                                className={`w-full text-left px-2.5 py-1.5 rounded-control text-xs flex items-center justify-between transition-colors ${
-                                  isCurrent
-                                    ? 'bg-accent/10 text-accent font-semibold cursor-default'
-                                    : 'text-text hover:bg-surface-2 hover:text-accent'
-                                }`}
-                              >
-                                <div className="min-w-0 pr-1">
-                                  <span className="block font-medium truncate">
-                                    {acc.role === 'secretary' ? '🔑 ' : acc.role === 'committee' ? '🛡️ ' : '👤 '}
-                                    {acc.label}
-                                  </span>
-                                  <span className="block text-[10px] text-muted truncate">{acc.name} ({acc.details})</span>
-                                </div>
-                                {isCurrent && <Check className="w-3.5 h-3.5 text-accent shrink-0" />}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </>
-                  )}
                 </div>
               </>
             ) : (
